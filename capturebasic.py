@@ -3,12 +3,12 @@ import cv2
 import time
 import subprocess
 
-cap = cv2.VideoCapture(0)
+capture = cv2.VideoCapture(0)
 
 face_cascade = cv2.CascadeClassifier('cascades/haarcascade_frontalface_alt.xml')
 
 def say():
-    subprocess.call('say -v Victoria "I think your back is not straight, Luis"', shell=True)
+    subprocess.call('say -v Victoria "I think your back is not straight, Mister!"', shell=True)
 
 def delay_to(fps):
     time.sleep(1.0 / fps)
@@ -20,11 +20,15 @@ counter_ok = 0
 
 while(True):
     #Capture frame-by-frame
-    ret, frame = cap.read()
+    ret, frame = capture.read()
 
     if not ret:
         print 'frame skipped'
         continue
+
+    #flips horizontally:
+    #frame = np.fliplr(frame) # check which is faster:
+    frame = cv2.flip(frame, 1)
 
     # Our operations on the frame come here
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -70,8 +74,6 @@ while(True):
         counter_ok = 0
         counter = 0
 
-    #flips horizontally:
-    #frame = np.fliplr(frame)
 
     #Display the resulting frame
     cv2.imshow('frame', frame)
