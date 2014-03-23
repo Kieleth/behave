@@ -14,7 +14,7 @@ def delay_to(fps):
     time.sleep(1.0 / fps)
 
 #INIT:
-COUNTER = 10
+COUNTER = 20
 counter = 0
 counter_ok = 0
 
