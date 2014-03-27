@@ -1,8 +1,5 @@
 import numpy as np
 import cv2
-import time
-import subprocess
-import time
 
 from classifiers import FaceClassifier
 from enforcers import EnforceFaceWithin
@@ -11,7 +8,7 @@ import gui
 
 #INIT:
 frame_num = 0
-tick_frequency = cv2.getTickFrequency()
+timer = utils.CvTimer()
 
 capture = cv2.VideoCapture(0)
 
@@ -19,7 +16,7 @@ face_enforcer = EnforceFaceWithin(utils.say)
 
 while(True):
     #Time tracking w opencv:
-    frame_tick_start = cv2.getTickCount()
+    timer.reset()
 
     #Capture frame-by-frame
     _, the_frame = capture.read()
@@ -47,8 +44,7 @@ while(True):
         break
 
     #Timecv
-    frame_ticks = cv2.getTickCount() - frame_tick_start
-    cv2.putText(the_frame, "fps=%s" % (tick_frequency / frame_ticks), (10, 35),
+    cv2.putText(the_frame, "fps=%s" % (timer.fps), (10, 35),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
     cv2.putText(the_frame, "frame=%s" % (frame_num), (10, 55),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
