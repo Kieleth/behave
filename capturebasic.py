@@ -43,12 +43,13 @@ while(True):
     if gui.should_quit():
         break
 
-    #Timecv
+    #Timecv:
     cv2.putText(the_frame, "fps=%s" % (timer.fps), (10, 35),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
+    #Frame counter:
+    frame_num += 1
     cv2.putText(the_frame, "frame=%s" % (frame_num), (10, 55),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
-    frame_num += 1
 
     #Display the resulting frame
     cv2.imshow('frame', the_frame)
