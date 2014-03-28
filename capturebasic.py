@@ -44,7 +44,7 @@ while(True):
         break
 
     #Timecv:
-    cv2.putText(the_frame, "fps=%s" % (timer.fps), (10, 35),
+    cv2.putText(the_frame, "fps=%s avg=%s" % (timer.fps, timer.avg_fps), (10, 35),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
     #Frame counter:
     frame_num += 1

@@ -22,6 +22,7 @@ class CvTimer(object):
         self.tick_frequency = cv2.getTickFrequency()
         self.tick_at_init = cv2.getTickCount()
         self.last_tick = self.tick_at_init
+        self.fps_history = []
 
     def reset(self):
         self.last_tick = cv2.getTickCount()
@@ -31,4 +32,10 @@ class CvTimer(object):
 
     @property    
     def fps(self):
-        return self.tick_frequency / (self.get_tick_now() - self.last_tick)
+        fps = self.tick_frequency / (self.get_tick_now() - self.last_tick)
+        self.fps_history.append(fps) 
+        return fps
+
+    @property
+    def avg_fps(self):
+        return float(sum(self.fps_history)) / len(self.fps_history) 
