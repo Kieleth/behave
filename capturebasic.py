@@ -5,15 +5,18 @@ from classifiers import FaceClassifier
 from enforcers import EnforceFaceWithin
 import utils
 import gui
-import time
 
 #INIT:
 frame_num = 0
 timer = utils.CvTimer()
 
 capture = cv2.VideoCapture(0)
+frame_width = int(capture.get(3))
+frame_heigth = int(capture.get(4))
+print('capturing %sx%s' % (frame_width, frame_heigth)) 
 
 face_enforcer = EnforceFaceWithin(utils.say)
+y_limit = face_enforcer.y_limit_low
 face_classifier = FaceClassifier()
 
 while(True):
@@ -31,11 +34,14 @@ while(True):
 
     faces_list = face_classifier.detect_multiscale(frame_prepared)
 
+    #display red line for lower limit
+    #TODO: change this to a general method to show limits:
+    gui.display_line(the_frame, (0, y_limit), (frame_width, y_limit))
+
     if faces_list != () :
         gui.display_faces(the_frame, faces_list)
 
     if len(faces_list) == 1:
-
         action_needed = face_enforcer.check_face(faces_list[0])
         if action_needed:
             action_needed()

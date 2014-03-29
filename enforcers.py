@@ -15,7 +15,7 @@ class EnforceFaceWithin(object):
 
         self.x_limit_low = 350 if not x_limit_low else x_limit_low
         self.x_limit_high = 650 if not x_limit_high else x_limit_high
-        self.y_limit_low = 150 if not y_limit_low else y_limit_low
+        self.y_limit_low = 300 if not y_limit_low else y_limit_low
         self.y_limit_high = 0 if not y_limit_high else y_limit_high
 
     def reset_wrongs(self):
@@ -27,10 +27,12 @@ class EnforceFaceWithin(object):
     def check_face(self, face):
         # FACE POSITION CONTROL:
         x, y, w, h = face
+        #mid_face_y is half the heigth of the face captured
+        mid_face_y = y + (h / 2)
 
         if (x < self.x_limit_low or
             x > self.x_limit_high or
-            y > self.y_limit_low or
+            mid_face_y > self.y_limit_low or
             y < self.y_limit_high):
 
             self.wrongs_count += 1
@@ -44,6 +46,7 @@ class EnforceFaceWithin(object):
         #if some wrongs/warnings, then if some oks happened, reset warnings
         elif self.wrongs_count > 0:
             self.oks_count += 1
+            print 'better(%s)' % self.oks_count
 
             if self.oks_count == self.oks_max:
                 print 'All good now... :)'

@@ -1,23 +1,21 @@
-#Project:
+###Project:
 
-The purpose of Behave is to help people control themselves in front of a computer.
+Behave is a little app to help people control themselves in front of a computer.
 
-At the moment only works keeping the back straight when sitting.
+At the moment only works keeping the back straight when you are sitting.
 
-Future versions aim to allow the user to teach the application how to recongnice unwanted actions, like nail bitting for example.
+Future versions aim will allow the user to teach the application how to recongnice unwanted actions, like nail bitting for example.
 
-#Implementation:
+####Implementation:
 
-Behave uses the webcam of the computer and processes the video stream to capture what is told to do.
+A Python script that takes control the webcam of the computer and with OpenCV processes the video stream to capture what is told to do.
 
-Uses OpenCV and Python.
-
-#Features:
+####Features:
 
 2014 Mar 23
 Captures the position of the face, makes sure that it does not go below cerain treshold. 
 
-#Requirements:
+####Requirements:
 (At the moment this are the specs of the dev environment that works):
 
 - Mac Os 10.8.5
@@ -25,5 +23,6 @@ Captures the position of the face, makes sure that it does not go below cerain t
 - Python 2.7 in 32-bit version (should work in x64)
 - Webcam!
 
-#TODO:
+####TODO:
 - 140324 --> FIX/handle "Camera dropped frame!" output
+- 140329 --> PACK it so it can be used in "one click"
