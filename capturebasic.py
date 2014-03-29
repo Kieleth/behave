@@ -3,6 +3,9 @@ import cv2
 import time
 import subprocess
 import time
+import sys
+
+sys.setcheckinterval(0)
 
 def launch():
     #INIT:
