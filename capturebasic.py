@@ -5,6 +5,7 @@ from classifiers import FaceClassifier
 from enforcers import EnforceFaceWithin
 import utils
 import gui
+import time
 
 #INIT:
 frame_num = 0
@@ -13,6 +14,7 @@ timer = utils.CvTimer()
 capture = cv2.VideoCapture(0)
 
 face_enforcer = EnforceFaceWithin(utils.say)
+face_classifier = FaceClassifier()
 
 while(True):
     #Time tracking w opencv:
@@ -27,7 +29,6 @@ while(True):
 
     frame_prepared = utils.prepare_frame_for_detection(the_frame)
 
-    face_classifier = FaceClassifier()
     faces_list = face_classifier.detect_multiscale(frame_prepared)
 
     if faces_list != () :
@@ -53,7 +54,6 @@ while(True):
 
     #Display the resulting frame
     cv2.imshow('frame', the_frame)
-
 
 capture.release()
 cv2.destroyAllWindows()
