@@ -5,9 +5,10 @@ import subprocess
 import time
 import sys
 
-sys.setcheckinterval(0)
+#sys.setcheckinterval(0)
 
 def launch():
+    time_start = time.time()
     #INIT:
     COUNTER = 20
     counter = 0
@@ -103,7 +104,11 @@ def launch():
 
         #Display the resulting frame
         cv2.imshow('frame', frame)
+        
+        if time.time() - time_start >= 20:
+            break
+
+    capture.release()
+    cv2.destroyAllWindows()
 
 launch()
-capture.release()
-cv2.destroyAllWindows()
