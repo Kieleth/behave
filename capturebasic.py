@@ -4,9 +4,6 @@ import time
 import subprocess
 import time
 
-capture = cv2.VideoCapture(0)
-
-face_cascade = cv2.CascadeClassifier('cascades/haarcascade_frontalface_alt.xml')
 
 def say():
     subprocess.call('say -v Victoria "I think your back is not straight, Mister."&', shell=True)
@@ -18,7 +15,14 @@ def delay_to(fps):
 COUNTER = 20
 counter = 0
 counter_ok = 0
-
+#Recognition:
+capture = cv2.VideoCapture(0)
+face_cascade = cv2.CascadeClassifier('cascades/haarcascade_frontalface_alt.xml')
+scale_factor = 1.3
+min_neigh = 4
+flags = cv2.CASCADE_SCALE_IMAGE
+minSize = (200, 200)
+maxSize = None # (300, 300)
 #time init:
 t = ms = tms = fr = 1
 
@@ -43,14 +47,7 @@ while(True):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.equalizeHist(gray)
 
-    #Recognition:
-    scale_factor = 1.3
-    min_neigh = 4
-    flags = cv2.CASCADE_SCALE_IMAGE
-    minSize = (200, 200)
-    maxSize = None # (300, 300)
     faces = face_cascade.detectMultiScale(gray, scale_factor, min_neigh,minSize=minSize, maxSize=maxSize, flags=flags)
-    #LOG>print faces
 
     for (x, y, w, h) in faces:
         cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
@@ -98,8 +95,7 @@ while(True):
     cvtime_frame = cv2.getTickCount() - cvtime_frame_starts
     ms = float(cvtime_frame) / (cv2.getTickFrequency() * 1000)
     f = cv2.getTickFrequency()
-    tms += ms
-    cv2.putText(frame, "frame=%s, fps(avg)=%s, t(avg)=%s fps=%s" % (fr, 1000.0 / (float(tms)/fr), tms / float(fr), f / cvtime_frame), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
+    cv2.putText(frame, "frame=%s, fps=%s" % (fr, f / cvtime_frame), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
 
     #Display the resulting frame
     cv2.imshow('frame', frame)
