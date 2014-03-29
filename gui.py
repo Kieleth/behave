@@ -18,7 +18,9 @@ def display_faces(cv_img, faces_list):
     for (x, y, w, h) in faces_list:
         #TODO: change rectangle for frame-like only corners.
         cv2.rectangle(cv_img, (x, y), (x + w, y + h), (255, 0, 0), 2)   
-        display_line(cv_img, (0, y + h / 2), (1280, y + h /2), colour=(0, 255, 0))
+        display_line(cv_img, (0, y + h / 2), (x - 1, y + h /2), colour=(0, 255, 0))
+        #1280 should be passed somehow
+        display_line(cv_img, (x + w + 1, y + h / 2), (1280, y + h /2), colour=(0, 255, 0))
         display_rectangle_coords(cv_img, x, y, w, h)
 
 def should_quit():

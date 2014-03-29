@@ -4,7 +4,7 @@ Behave is a little app to help people control themselves in front of a computer.
 
 At the moment only works keeping the back straight when you are sitting.
 
-Future versions aim will allow the user to teach the application how to recongnice unwanted actions, like nail bitting for example.
+Future versions aim will allow the user to teach the application how to recognice unwanted actions, like nail bitting for example.
 
 ####Implementation:
 

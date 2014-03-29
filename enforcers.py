@@ -13,10 +13,7 @@ class EnforceFaceWithin(object):
         self.wrongs_max = 20 if not wrongs_max else wrongs_max
         self.oks_max = 10 if not oks_max else oks_max
 
-        self.x_limit_low = 350 if not x_limit_low else x_limit_low
-        self.x_limit_high = 650 if not x_limit_high else x_limit_high
-        self.y_limit_low = 300 if not y_limit_low else y_limit_low
-        self.y_limit_high = 0 if not y_limit_high else y_limit_high
+        self.y_limit_low = 3000 if not y_limit_low else y_limit_low
 
     def reset_wrongs(self):
         self.wrongs_count = 0
@@ -30,11 +27,7 @@ class EnforceFaceWithin(object):
         #mid_face_y is half the heigth of the face captured
         mid_face_y = y + (h / 2)
 
-        if (x < self.x_limit_low or
-            x > self.x_limit_high or
-            mid_face_y > self.y_limit_low or
-            y < self.y_limit_high):
-
+        if mid_face_y > self.y_limit_low:
             self.wrongs_count += 1
             print 'warning... :|'
 
