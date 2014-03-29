@@ -24,6 +24,8 @@ flags = cv2.CASCADE_SCALE_IMAGE
 minSize = (200, 200)
 maxSize = None # (300, 300)
 #time init:
+fps_histo = []
+f = cv2.getTickFrequency()
 t = ms = tms = fr = 1
 
 while(True):
@@ -92,15 +94,16 @@ while(True):
     fps = 1.0 / time_frame  
     cv2.putText(frame, "fps = %s" % (fps), (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
     #cv
+    fr += 1
     cvtime_frame = cv2.getTickCount() - cvtime_frame_starts
-    ms = float(cvtime_frame) / (cv2.getTickFrequency() * 1000)
-    f = cv2.getTickFrequency()
-    cv2.putText(frame, "frame=%s, fps=%s" % (fr, f / cvtime_frame), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
+    fps = f / cvtime_frame
+    fps_histo.append(fps)
+    fps_avg = float(sum(fps_histo)) / len(fps_histo)
+    cv2.putText(frame, "frame=%s, fps=%s, avg=%s" % (fr, fps, fps_avg), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
 
     #Display the resulting frame
     cv2.imshow('frame', frame)
 
-    fr += 1
 
 capture.release()
 cv2.destroyAllWindows()
