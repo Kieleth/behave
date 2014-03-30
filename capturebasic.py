@@ -1,11 +1,9 @@
-import numpy as np
 import cv2
 
 from classifiers import FaceClassifier
 from enforcers import EnforceFaceWithin
 import utils
 import gui
-import numpy as np
 
 #INIT:
 frame_num = 0
@@ -24,7 +22,7 @@ def set_y_limit_low(event,x,y,flags,param):
     if event == cv2.EVENT_LBUTTONDOWN:
         face_enforcer.set_enforce_parameters(y_limit_low=y) 
 
-# Create a black image, a window and bind the function to window
+# Create a window and bind the function to window
 cv2.namedWindow('behave')
 cv2.setMouseCallback('behave', set_y_limit_low)
 
@@ -46,7 +44,9 @@ while(True):
     #display red line for lower limit
     #TODO: change this to a general method to show limits:
     gui.display_line(the_frame, (0, face_enforcer.y_limit_low),
-                                (frame_width, face_enforcer.y_limit_low))
+                                (frame_width / 7, face_enforcer.y_limit_low), thickness=2)
+    gui.display_line(the_frame, (frame_width - (frame_width / 7), face_enforcer.y_limit_low),
+                                (1280, face_enforcer.y_limit_low), thickness=2)
 
     if len(faces_list) == 1:
         action_needed = face_enforcer.check_face(faces_list[0])
