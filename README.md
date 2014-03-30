@@ -2,7 +2,7 @@
 Behave is a little app to help people control themselves in front of a computer.
 
 ####Implementation:
-A Python script that takes control the webcam of the computer and with OpenCV processes the video stream to capture what is told to do.
+A Python script doing basic computer vision that takes control the webcam of the computer and with OpenCV processes the video stream to capture what is told to do.
 
 ####Features:
 - 140329 User can set treshold by clicking in image.
