@@ -17,7 +17,7 @@ def display_faces(cv_img, faces_list):
     """faces_list has format [(x, y, w, h), ..]"""
     for (x, y, w, h) in faces_list:
         #TODO: change rectangle for frame-like only corners.
-        cv2.rectangle(cv_img, (x, y), (x + w, y + h), (255, 0, 0), 2)   
+        cv2.rectangle(cv_img, (x, y), (x + w, y + h), (255, 0, 0), 1)   
         display_line(cv_img, (0, y + h / 2), (x - 10, y + h /2), color=(0, 255, 0))
         #1280 should be passed somehow
         display_line(cv_img, (x + w + 10, y + h / 2), (1280, y + h /2), color=(0, 255, 0))

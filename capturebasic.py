@@ -6,34 +6,32 @@ import utils
 import gui
 
 #INIT:
-frame_num = 0
 timer = utils.CvTimer()
 
-capture = cv2.VideoCapture(0)
-frame_width = int(capture.get(3))
-frame_heigth = int(capture.get(4))
+capturer = utils.Capturer()
+frame_width = capturer.get_cam_width()
+frame_heigth = capturer.get_cam_height() 
 print('capturing %sx%s' % (frame_width, frame_heigth)) 
 
 face_enforcer = EnforceFaceWithin(utils.say)
 face_classifier = FaceClassifier()
 
-# mouse callback function
+# mouse callback function sets red line to enforce
 def set_y_limit_low(event,x,y,flags,param):
     if event == cv2.EVENT_LBUTTONDOWN:
         face_enforcer.set_enforce_parameters(y_limit_low=y) 
 
-# Create a window and bind the function to window
+# Create a window and bind function(s) to window
 cv2.namedWindow('behave')
 cv2.setMouseCallback('behave', set_y_limit_low)
 
+
 while(True):
     #Time tracking w opencv:
-    timer.reset()
+    timer.new_frame()
 
     #Capture frame-by-frame
-    _, the_frame = capture.read()
-    if the_frame is None:
-        raise
+    the_frame = capturer.get_frame()
 
     the_frame = utils.flip_frame(the_frame)
 
@@ -65,12 +63,11 @@ while(True):
     cv2.putText(the_frame, "fps=%s avg=%s" % (timer.fps, timer.avg_fps), (10, 35),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
     #Frame counter:
-    frame_num += 1
-    cv2.putText(the_frame, "frame=%s" % (frame_num), (10, 55),
+    cv2.putText(the_frame, "frame=%s" % (timer.frame_num), (10, 55),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
 
     #Display the resulting frame
     cv2.imshow('behave', the_frame)
 
-capture.release()
+capturer.release()
 cv2.destroyAllWindows()

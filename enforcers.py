@@ -29,19 +29,20 @@ class EnforceFaceWithin(object):
 
         if mid_face_y > self.y_limit_low:
             self.wrongs_count += 1
-            print 'warning... :|'
+            self.reset_oks()
+            print 'warning...(%s) :|' % self.wrongs_count
 
             if self.wrongs_count == self.wrongs_max:
-                print 'You are doing something wrong!!!'
+                print 'Oh-oh, telling you that something is not right... :('
                 self.reset_wrongs()
                 return self.nasty_trigger
 
         #if some wrongs/warnings, then if some oks happened, reset warnings
         elif self.wrongs_count > 0:
             self.oks_count += 1
-            print 'better(%s)' % self.oks_count
+            print 'better...(%s) :)' % self.oks_count
 
             if self.oks_count == self.oks_max:
-                print 'All good now... :)'
+                print 'All good now! :D'
                 self.reset_wrongs()
                 self.reset_oks()
