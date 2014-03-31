@@ -6,11 +6,9 @@ class EnforceFaceWithin(object):
 
         self.set_enforce_parameters()
 
-    def set_enforce_parameters(self, wrongs_max=None, oks_max=None,
-                               x_limit_low=None, x_limit_high=None,
-                               y_limit_low=None, y_limit_high=None):
+    def set_enforce_parameters(self, wrongs_max=None, oks_max=None, y_limit_low=None):
         """TODO: change this to enforce seconds instead of frames?"""
-        self.wrongs_max = 20 if not wrongs_max else wrongs_max
+        self.wrongs_max = 30 if not wrongs_max else wrongs_max
         self.oks_max = 10 if not oks_max else oks_max
 
         self.y_limit_low = 3000 if not y_limit_low else y_limit_low

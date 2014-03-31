@@ -1,5 +1,6 @@
 import cv2
 import subprocess
+import sys
 
 def say():
     subprocess.call('say -v Victoria "I think your back is not straight, Mister."&',
@@ -9,7 +10,7 @@ def flip_frame(frame):
     #1 flips horizontally:
     return cv2.flip(frame, 1)
 
-def prepare_frame_for_detection(frame):
+def convert_to_gray_and_equalize(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.equalizeHist(gray)
     return gray
