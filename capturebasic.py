@@ -1,9 +1,23 @@
 import cv2
+import os
+import sys
 
-from classifiers import FaceClassifier
-from enforcers import EnforceFaceWithin
+import classifiers
+import enforcers
 from utils import flip_frame, CvTimer, Capturer, say, convert_to_gray_and_equalize
 import gui
+
+#cx_freeze data hanlder
+def find_data_file(filename):
+    if getattr(sys, 'frozen', False):
+        # The application is frozen
+        datadir = os.path.dirname(sys.executable)
+    else:
+        # The application is not frozen
+        # Change this bit to match where you store your data files:
+        datadir = os.path.dirname(__file__)
+
+    return os.path.join(datadir, filename)
 
 #INIT:
 timer = CvTimer()
@@ -13,8 +27,9 @@ frame_width = capturer.get_cam_width()
 frame_heigth = capturer.get_cam_height() 
 print('capturing %sx%s' % (frame_width, frame_heigth)) 
 
-face_enforcer = EnforceFaceWithin(say)
-face_classifier = FaceClassifier()
+face_enforcer = enforcers.EnforceFaceWithin(say)
+#face_classifier = classifiers.CascadeClassifier('cascades/haarcascade_frontalface_default.xml')
+face_classifier = classifiers.CascadeClassifier(find_data_file('cascades/haarcascade_frontalface_alt.xml'))
 
 # mouse callback function sets red line to enforce
 def set_y_limit_low(event,x,y,flags,param):

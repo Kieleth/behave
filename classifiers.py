@@ -3,7 +3,7 @@ import cv2
 class CascadeClassifier(object):
     def __init__(self, xml_file):
         try:
-            self.cascade = cv2.CascadeClassifier('cascades/haarcascade_frontalface_alt.xml')
+            self.cascade = cv2.CascadeClassifier(xml_file)
         except IOError as e:
             raise e
 
@@ -28,9 +28,4 @@ class CascadeClassifier(object):
                                            maxSize=self.maxSize,
                                            flags=self.flags)
         return found_list
-
-
-class FaceClassifier(CascadeClassifier):
-    def __init__(self):
-        super(FaceClassifier, self).__init__('cascades/haarcascade_frontalface_alt.xml')
 

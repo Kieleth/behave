@@ -39,6 +39,9 @@ class Capturer(object):
     def get_frame(self):
         _, frame = self._camera.read()
         return frame
+    
+    def release(self):
+        self._camera.release()
 
 def circular_counter(max):
     """helper function that creates an eternal counter till a max value"""
