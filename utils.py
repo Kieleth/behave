@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 def say():
-    subprocess.call('say -v Victoria "I think your back is not straight, darling."&',
+    subprocess.call('say -v Victoria "I think your back is not straight, bitch."&',
                     shell=True)
 
 def flip_frame(frame):
