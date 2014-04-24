@@ -1,5 +1,11 @@
 import cv2
 
+def create_window(name):
+    cv2.namedWindow(name)
+
+def assign_action(name, action):
+    cv2.setMouseCallback(name, action)
+
 def display_rectangle_coords(cv_image, x, y, w, h):
     """displays coords on screen"""
     #TODO I dont like this function here.
@@ -32,4 +38,15 @@ def get_key_pressed():
         return 'quit'
     elif k == ord('d'):
         return 'debug'
+
+def put_controls(a_frame):
+    cv2.putText(a_frame, "Behave!!! :)", (10, 130),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
+    cv2.putText(a_frame, "Click with the mouse to begin", (10, 170),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
+    cv2.putText(a_frame, "Press 'd' to debug, 'q' to quit", (10, 190),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
+
+def show_image(where, a_frame):
+    cv2.imshow(where, a_frame)
 
