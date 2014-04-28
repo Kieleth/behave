@@ -1,6 +1,7 @@
 import cv2
 import subprocess
 import sys
+import os
 
 def say():
     subprocess.call('say -v Victoria "I think your back is not straight, darling."&',
@@ -14,6 +15,18 @@ def convert_to_gray_and_equalize(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.equalizeHist(gray)
     return gray
+
+#cx_freeze data hanlder
+def find_data_file(filename):
+    if getattr(sys, 'frozen', False):
+        # The application is frozen
+        datadir = os.path.dirname(sys.executable)
+    else:
+        # The application is not frozen
+        # Change this bit to match where you store your data files:
+        datadir = os.path.dirname(__file__)
+
+    return os.path.join(datadir, filename)
 
 class Capturer(object):
     """ provides interface to the camera
