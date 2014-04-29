@@ -1,12 +1,11 @@
-import cv2
-
 import classifiers
 import enforcers
-from utils import flip_frame, CvTimer, Capturer, say, convert_to_gray_and_equalize, find_data_file
+from utils import flip_frame, CvTimer, WorkTimer, Capturer, say, convert_to_gray_and_equalize, find_data_file
 from gui_managers import CX_Gui
 
 #INIT:
 timer = CvTimer()
+work_timer = WorkTimer()
 
 capturer = Capturer()
 frame_width = capturer.get_cam_width()
@@ -28,13 +27,12 @@ debug = False
 #Main Loop
 while(True):
     #Time tracking w opencv:
-    timer.new_frame()
+    timer.mark_new_frame()
 
     fps_while_counter -= 1
 
     #Capture frame-by-frame
     a_frame = capturer.get_frame()
-
     a_frame = flip_frame(a_frame)
 
     gui.feed_frame(a_frame)
@@ -45,27 +43,34 @@ while(True):
         fps_while_counter = fps_counter
 
         a_frame_prepared = convert_to_gray_and_equalize(a_frame)
-
         faces_list = face_classifier.detect_multiscale(a_frame_prepared)
 
+        #Only doing some behaving if there's only one face:
         if len(faces_list) == 1:
             action_needed, msg = face_enforcer.check_face(faces_list[0])
             if action_needed:
                 action_needed()
+            if msg:
+                gui.put_msg(msg)
+
+            #if face detected, work counter counts:
+            if work_timer.is_started:
+                gui.show_contdown(work_timer.get_time_left())
 
         if faces_list != ():
             gui.display_faces(faces_list, with_debug=debug)
     
-        if msg:
-            cv2.putText(a_frame, msg, (10, 35),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255))
-
-    #key handler:
-    to_do = gui.get_key_pressed()
+    #gui event handler:
+    to_do = gui.get_action()
     if to_do == 'quit':
         break
     elif to_do == 'debug':
         debug = not debug
+    elif to_do == 'toggle_work_timer':
+        if work_timer.is_started:
+            work_timer.stop()
+        else: 
+            work_timer.start()
 
     if debug:
         gui.show_debug(timer)
@@ -78,4 +83,4 @@ while(True):
 
 #Cleaning up
 capturer.release()
-cv2.destroyAllWindows()
+gui.close_window()

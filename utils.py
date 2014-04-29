@@ -2,6 +2,7 @@ import cv2
 import subprocess
 import sys
 import os
+import time
 
 def say():
     subprocess.call('say -v Victoria "I think your back is not straight, darling."&',
@@ -75,7 +76,7 @@ class CvTimer(object):
         self.fps_counter = circular_counter(self.fps_len)
         self.frame_num = 0
 
-    def new_frame(self):
+    def mark_new_frame(self):
         self.last_tick = cv2.getTickCount()
         self.frame_num += 1
 
@@ -91,3 +92,24 @@ class CvTimer(object):
     @property
     def avg_fps(self):
         return sum(self.l_fps_history) / float(self.fps_len) 
+
+class WorkTimer(object):
+    def __init__(self):
+        self.start_time = 0
+        self.contdown = 0
+
+    def start(self):
+        self.contdown = 3000
+        self.start_time = time.time()
+
+    def stop(self):
+        self.contdown = 0
+
+    @property
+    def is_started(self):
+        return self.contdown
+
+    def get_time_left(self):
+        time_left = self.contdown - (time.time() - self.start_time)
+        return int(time_left) if time_left >= 0 else 0
+    

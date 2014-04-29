@@ -50,13 +50,15 @@ class CX_Gui(object):
                 self.display_rectangle_coords(self.a_frame, x, y, w, h)
 
     @staticmethod
-    def get_key_pressed():
+    def get_action():
         #key handler:
         k = cv2.waitKey(1) & 0xFF
         if k == ord('q') or k == 27:
             return 'quit'
         elif k == ord('d'):
             return 'debug'
+        elif k == ord('t'):
+            return 'toggle_work_timer'
 
     def put_controls(self):
         cv2.putText(self.a_frame, "Behave!!! :)", (10, 130),
@@ -65,6 +67,10 @@ class CX_Gui(object):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
         cv2.putText(self.a_frame, "Press 'd' to debug, 'q' to quit", (10, 190),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
+    
+    def put_msg(self, msg):
+            cv2.putText(self.a_frame, msg, (10, 35),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255))
 
     def show_image(self, where):
         cv2.imshow(where, self.a_frame)
@@ -82,4 +88,12 @@ class CX_Gui(object):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
         #Frame counter:
         cv2.putText(self.a_frame, "frame=%s" % (timer.frame_num), (10, 95),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
+
+    @staticmethod
+    def close_window():
+        cv2.destroyAllWindows()
+
+    def show_contdown(self, time):
+        cv2.putText(self.a_frame, "seconds left=%s" % (time), (10, 595),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
