@@ -44,11 +44,8 @@ class Capturer(object):
         self.cam_width = int(self._camera.get(3)) #cv2.CAP_PROP_FRAME_WIDTH)
         self.cam_height = int(self._camera.get(4)) #cv2.CAP_PROP_FRAME_HEIGHT) 
 
-    def get_cam_width(self):
-        return self.cam_width
-
-    def get_cam_height(self):
-        return self.cam_height
+    def get_camera_width_heigth(self):
+        return self.cam_width, self.cam_height
 
     def get_frame(self):
         _, frame = self._camera.read()
@@ -87,11 +84,11 @@ class CvTimer(object):
     def fps(self):
         fps = self.tick_frequency / (self.get_tick_now() - self.last_tick)
         self.l_fps_history[self.fps_counter.next() - 1] = fps 
-        return fps
+        return int(fps)
 
     @property
     def avg_fps(self):
-        return sum(self.l_fps_history) / float(self.fps_len) 
+        return int(sum(self.l_fps_history) / float(self.fps_len))
 
 class WorkTimer(object):
     def __init__(self):
@@ -113,3 +110,20 @@ class WorkTimer(object):
         time_left = self.contdown - (time.time() - self.start_time)
         return int(time_left) if time_left >= 0 else 0
     
+class FPSCounter(object):
+    '''Helper class that tells if we need to process this frame or not
+       Improves performance, a lot'''
+    def __init__(self, every):
+        self.every = every
+        self.counter = every
+
+    @property
+    def check_if_capture(self):
+        if self.counter == self.every:
+            self.counter = 0
+            return True
+        else:
+            self.counter += 1
+        
+        
+

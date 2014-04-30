@@ -90,10 +90,11 @@ class CX_Gui(object):
         cv2.putText(self.a_frame, "frame=%s" % (timer.frame_num), (10, 95),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
 
+    def show_contdown(self, time):
+        cv2.putText(self.a_frame, "seconds left=%s" % (time), (10, 595),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
+
     @staticmethod
     def close_window():
         cv2.destroyAllWindows()
 
-    def show_contdown(self, time):
-        cv2.putText(self.a_frame, "seconds left=%s" % (time), (10, 595),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
