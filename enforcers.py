@@ -1,16 +1,18 @@
-class EnforceFaceWithin(object):
+class EnforceFaceLimits(object):
     def __init__(self, trigger):
         self.wrongs_count = 0
         self.oks_count = 0
         self.nasty_trigger = trigger
 
-        self.set_enforce_parameters()
+        self.set_wrongs_and_oks()
+        self.set_y_limit_low()
 
-    def set_enforce_parameters(self, wrongs_max=None, oks_max=None, y_limit_low=None):
+    def set_wrongs_and_oks(self, wrongs_max=None, oks_max=None):
         """TODO: change this to enforce seconds instead of frames?"""
         self.wrongs_max = 20 if not wrongs_max else wrongs_max
         self.oks_max = 10 if not oks_max else oks_max
 
+    def set_y_limit_low(self, y_limit_low=None):
         self.y_limit_low = 3000 if not y_limit_low else y_limit_low
 
     def reset_wrongs(self):

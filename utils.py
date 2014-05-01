@@ -4,7 +4,7 @@ import sys
 import os
 import time
 
-def say():
+def say_warning():
     subprocess.call('say -v Victoria "I think your back is not straight, darling."&',
                     shell=True)
 
