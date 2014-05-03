@@ -35,18 +35,20 @@ class CX_Gui(object):
             cv2.line(img,(0,0),(511,511),(255,0,0),5)"""
         cv2.line(self.a_frame, coord1, coord2 , color=color, thickness=thickness)
 
-    def display_faces(self, faces_list, with_debug=False):
-        """faces_list has format [(x, y, w, h), ..]"""
+    def show_face_position(self, face):
+        """face has format (x, y, w, h)"""
         #TODO: change the colour of the face rect when in warning.
         #TODO: create an average of the positions of the last faces.
-        for (x, y, w, h) in faces_list:
-            #TODO: change rectangle for frame-like only corners.
-            self.display_line((0, y + h / 2), (x - 10, y + h /2), color=(0, 255, 0))
-            #1280 should be passed somehow
-            self.display_line((x + w + 10, y + h / 2), (1280, y + h /2), color=(0, 255, 0))
-            if with_debug:
-                cv2.rectangle(self.a_frame, (x, y), (x + w, y + h), (255, 0, 0), 1)   
-                self.display_rectangle_coords(x, y, w, h)
+        x, y, w, h = face
+        #TODO: change rectangle for frame-like only corners.
+        self.display_line((0, y + h / 2), (x - 10, y + h /2), color=(0, 255, 0))
+        #1280 should be passed somehow
+        self.display_line((x + w + 10, y + h / 2), (1280, y + h /2), color=(0, 255, 0))
+
+    def show_face(self, face):
+        x, y, w, h = face
+        cv2.rectangle(self.a_frame, (x, y), (x + w, y + h), (255, 0, 0), 1)   
+        self.display_rectangle_coords(x, y, w, h)
 
     @staticmethod
     def get_action():
@@ -77,8 +79,8 @@ class CX_Gui(object):
             cv2.putText(self.a_frame, msg, (10, 35),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255))
 
-    def show_image(self, where):
-        cv2.imshow(where, self.a_frame)
+    def show_image(self):
+        cv2.imshow(self.window_name, self.a_frame)
 
     def show_limits(self, face_enforcer):
         """displays red lines for the low limits"""
