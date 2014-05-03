@@ -1,12 +1,12 @@
 import classifiers
 import enforcers
-from utils import flip_frame, CvTimer, WorkTimer, Capturer, say_warning, convert_to_gray_and_equalize, find_data_file, FPSCounter
+from utils import flip_frame, CvTimer, CountdownTimer, Capturer, say_warning, convert_to_gray_and_equalize, find_data_file, FPSCounter
 from gui_managers import CX_Gui
 
 class Behave(object):
     def __init__(self):
         self.timer = CvTimer()
-        self.work_timer = WorkTimer()
+        self.work_timer = CountdownTimer()
         #TODO:this should be configurable from gui
         self.frame_counter = FPSCounter(every=5)
 
@@ -22,23 +22,27 @@ class Behave(object):
         self.gui = CX_Gui(window_name='behave', enforcer=self.face_enforcer, frame_size=self.frame_size)
         self.gui.initialize_gui()
 
-        self._msg = None
-        self._debug = False
-        self._enforcing = True
-        self._quit = False
-        self._auto_limit_protocol = False
+        #Event hooks:
+        self._event_debug = False
+        self._event_enforcing = True
+        self._event_quit = False
+        self._event_auto_limit = False
+        #_msg is used to get output from events
+        self._event_msg = None
+
+        #Auto-adjust protocol needs:
         self._auto_faces = []
-        self._auto_num_faces = 5
+        self._auto_num_faces = 5 #TODO: gui configurable
         self._auto_tilt = 10
 
     def handle_gui_events(self):
         #gui keypress event handler:
         to_do = self.gui.get_action()
         if to_do == 'quit':
-            self._quit = True
+            self._event_quit = True
 
         elif to_do == 'debug':
-            self._debug = not self._debug
+            self._event_debug = not self._event_debug
 
         elif to_do == 'toggle_work_timer':
             if self.work_timer.is_started:
@@ -47,12 +51,12 @@ class Behave(object):
                 self.work_timer.start()
 
         elif to_do == 'set_limit_auto':
-            self._auto_limit_protocol = True
+            self._event_auto_limit = True
 
     def adjusting_auto_limit(self, face):
         """Fancy protocol, saves N faces, takes average and sets the y limit with a tilt"""
         #We disable enforcing
-        self._enforcing = False
+        self._event_enforcing = False
 
         self._auto_faces.append(face)
 
@@ -62,7 +66,7 @@ class Behave(object):
         if len_faces == self._auto_num_faces:
             y_s = [y + h / 2. for x, y, w, h in self._auto_faces]
             h_s = [h for x, y, w, h in self._auto_faces]
-            #Very ugly, but needed, float to get the real avg, then truncate it since its pixels
+            #Very ugly, but needed, float to get the real avg, then truncate to get pixels
             avg_y_s = int(sum(y_s) / len_faces)
             avg_size = int(float(sum(h_s)) / len_faces)
 
@@ -70,13 +74,13 @@ class Behave(object):
             y_limit_low = avg_y_s + surplus
             self.face_enforcer.set_y_limit_low(y_limit_low)
 
-            #cleaning up:
+            #leaving the auto adjustment, cleaning up:
             self.face_enforcer.reset_wrongs()
             self.face_enforcer.reset_oks()
             self._auto_faces = list() 
-            self._auto_limit_protocol = False
-            self._enforcing = True
-                
+            self._event_auto_limit = False
+            self._event_enforcing = True
+
         return msg
 
     def detect_face_in_frame(self, a_frame): 
@@ -97,9 +101,8 @@ class Behave(object):
         return self.frame_counter.check_if_capture
 
     def main(self):
-        msg_out = None
                 
-        while(not self._quit):
+        while(not self._event_quit):
             self.timer.mark_new_frame()
 
             #Capture frame-by-frame
@@ -109,38 +112,40 @@ class Behave(object):
 
             #detect face part:
             if self.should_process_this_frame:
-                face_coords = self.detect_face_in_frame(a_frame)
+                #face>>(x,y,w,h)
+                face = self.detect_face_in_frame(a_frame)
 
-                if face_coords is not None:
-                    self.gui.show_face_position(face_coords)
-                    if self._debug:
-                        self.gui.show_face(face_coords)
-                    if self._auto_limit_protocol:
-                        msg_out = self.adjusting_auto_limit(face_coords)
-                    if self._enforcing:
-                        msg_out = self.enforce_action_in(face_coords)
+                if face is not None:
+                    self.gui.show_face_position(face)
+                    if self._event_debug:
+                        self.gui.show_face(face)
+                    if self._event_auto_limit:
+                        self._event_msg = self.adjusting_auto_limit(face)
+                    if self._event_enforcing:
+                        self._event_msg = self.enforce_action_in(face)
 
-            if msg_out:
-                self.gui.show_msg(msg_out)
+            #this if is out of the process one to leave the msg in between frames
+            if self._event_msg:
+                self.gui.show_msg(self._event_msg)
 
             #Check user input, this part needs to be after the frame has been created and fed to gui:
             self.handle_gui_events()
-            if self._debug:
+            if self._event_debug:
                 self.gui.show_debug(self.timer)
             #TODO: if face detected, work counter counts:
             if self.work_timer.is_started:
                 self.gui.show_contdown(self.work_timer.get_time_left())
-            #Add on-screen controls and guide:
+            #Add on-screen controls and limits visual guide:
             self.gui.show_controls()
             self.gui.show_limits(self.face_enforcer)
 
             #Display the resulting frame
             self.gui.show_image()
 
+        #if we are out of the while:
         self.clean_up()
 
     def clean_up(self):
-        #Cleaning up
         self.capturer.release()
         self.gui.close_window()
 

@@ -90,7 +90,7 @@ class CvTimer(object):
     def avg_fps(self):
         return int(sum(self.l_fps_history) / float(self.fps_len))
 
-class WorkTimer(object):
+class CountdownTimer(object):
     def __init__(self):
         self.start_time = 0
         self.contdown = 0
