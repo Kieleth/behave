@@ -27,6 +27,8 @@ class CX_Gui(object):
             return 'quit'
         elif k == ord('d'):
             return 'debug'
+        elif k == ord('s'):
+            return 'toggle_show_image'
         elif k == ord('t'):
             return 'toggle_work_timer'
         elif k == ord(' '):

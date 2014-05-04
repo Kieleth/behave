@@ -22,11 +22,12 @@ class Behave(object):
         self.gui = CX_Gui(window_name='behave', frame_size=self.frame_size, callback_obj=self)
         self.gui.initialize_gui()
 
-        #Event hooks:
+        #Event hooks, they control the flow of the main loop:
         self._event_debug = False
         self._event_enforcing = True
         self._event_quit = False
         self._event_auto_limit = False
+        self._event_image_show = True
         #_msg is used to get output from events
         self._event_msg = None
 
@@ -48,6 +49,9 @@ class Behave(object):
                 self.work_timer.stop()
             else: 
                 self.work_timer.start()
+
+        elif keyb_event == 'toggle_show_image'
+            self._event_image_show = not self._event_image_show
 
         elif keyb_event == 'set_limit_auto':
             self._event_auto_limit = True
@@ -142,7 +146,8 @@ class Behave(object):
             self.gui.show_limits(self.face_enforcer)
 
             #Display the resulting frame
-            self.gui.show_image()
+            if self._event_image_show:
+                self.gui.show_image()
 
         #if we are out of the while:
         self.clean_up()
