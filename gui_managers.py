@@ -51,7 +51,7 @@ class CX_Gui(object):
         self.display_rectangle_coords(x, y, w, h)
 
     @staticmethod
-    def get_action():
+    def get_key_event():
         #key handler:
         k = cv2.waitKey(1) & 0xFF
         if k == ord('q') or k == 27:
@@ -60,7 +60,7 @@ class CX_Gui(object):
             return 'debug'
         elif k == ord('t'):
             return 'toggle_work_timer'
-        elif k == ord('a'):
+        elif k == ord(' '):
             return 'set_limit_auto'
 
     def show_controls(self):
@@ -68,7 +68,7 @@ class CX_Gui(object):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
         cv2.putText(self.a_frame, "Click with the mouse to set face limit", (10, 170),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
-        cv2.putText(self.a_frame, "Or press 'a' to have the limit automatically set", (10, 190),
+        cv2.putText(self.a_frame, "Or press 'space' to have the limit automatically set", (10, 190),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
         cv2.putText(self.a_frame, "Press 't' to set the work timer", (10, 210),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))

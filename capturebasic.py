@@ -35,25 +35,24 @@ class Behave(object):
         self._auto_num_faces = 5 #TODO: gui configurable
         self._auto_tilt = 10
 
-    def handle_gui_events(self):
-        #gui keypress event handler:
-        to_do = self.gui.get_action()
-        if to_do == 'quit':
+    def dispatch_gui_events(self):
+        event = self.gui.get_key_event()
+        if event == 'quit':
             self._event_quit = True
 
-        elif to_do == 'debug':
+        elif event == 'debug':
             self._event_debug = not self._event_debug
 
-        elif to_do == 'toggle_work_timer':
+        elif event == 'toggle_work_timer':
             if self.work_timer.is_started:
                 self.work_timer.stop()
             else: 
                 self.work_timer.start()
 
-        elif to_do == 'set_limit_auto':
+        elif event == 'set_limit_auto':
             self._event_auto_limit = True
 
-    def adjusting_auto_limit(self, face):
+    def handle_auto_limit(self, face):
         """Fancy protocol, saves N faces, takes average and sets the y limit with a tilt"""
         #We disable enforcing
         self._event_enforcing = False
@@ -89,7 +88,7 @@ class Behave(object):
 
         return faces_list[0] if len(faces_list) == 1 else None
 
-    def enforce_action_in(self, face): 
+    def handle_enforce(self, face): 
         action_needed, msg = self.face_enforcer.check_face(face)
         if action_needed:
             action_needed()
@@ -120,16 +119,16 @@ class Behave(object):
                     if self._event_debug:
                         self.gui.show_face(face)
                     if self._event_auto_limit:
-                        self._event_msg = self.adjusting_auto_limit(face)
+                        self._event_msg = self.handle_auto_limit(face)
                     if self._event_enforcing:
-                        self._event_msg = self.enforce_action_in(face)
+                        self._event_msg = self.handle_enforce(face)
 
             #this if is out of the process one to leave the msg in between frames
             if self._event_msg:
                 self.gui.show_msg(self._event_msg)
 
             #Check user input, this part needs to be after the frame has been created and fed to gui:
-            self.handle_gui_events()
+            self.dispatch_gui_events()
             if self._event_debug:
                 self.gui.show_debug(self.timer)
             #TODO: if face detected, work counter counts:
