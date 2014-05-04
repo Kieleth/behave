@@ -50,7 +50,7 @@ class Behave(object):
             else: 
                 self.work_timer.start()
 
-        elif keyb_event == 'toggle_show_image'
+        elif keyb_event == 'toggle_show_image':
             self._event_image_show = not self._event_image_show
 
         elif keyb_event == 'set_limit_auto':

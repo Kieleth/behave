@@ -95,8 +95,9 @@ class CountdownTimer(object):
         self.start_time = 0
         self.contdown = 0
 
-    def start(self):
-        self.contdown = 3000
+    def start(self, count_down_to=None):
+        if count_down_to is None:
+            self.contdown = 3000
         self.start_time = time.time()
 
     def stop(self):
