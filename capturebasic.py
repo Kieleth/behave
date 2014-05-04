@@ -19,7 +19,7 @@ class Behave(object):
         self.face_classifier = classifiers.CascadeClassifier(find_data_file('cascades/haarcascade_frontalface_alt.xml'))
 
         #Initialize GUI:
-        self.gui = CX_Gui(window_name='behave', enforcer=self.face_enforcer, frame_size=self.frame_size)
+        self.gui = CX_Gui(window_name='behave', frame_size=self.frame_size, callback_obj=self)
         self.gui.initialize_gui()
 
         #Event hooks:
@@ -35,22 +35,25 @@ class Behave(object):
         self._auto_num_faces = 5 #TODO: gui configurable
         self._auto_tilt = 10
 
-    def dispatch_gui_events(self):
-        event = self.gui.get_key_event()
-        if event == 'quit':
+    def dispatch_keyb_events(self):
+        keyb_event = self.gui.keyb_event_generator()
+        if keyb_event == 'quit':
             self._event_quit = True
 
-        elif event == 'debug':
+        elif keyb_event == 'debug':
             self._event_debug = not self._event_debug
 
-        elif event == 'toggle_work_timer':
+        elif keyb_event == 'toggle_work_timer':
             if self.work_timer.is_started:
                 self.work_timer.stop()
             else: 
                 self.work_timer.start()
 
-        elif event == 'set_limit_auto':
+        elif keyb_event == 'set_limit_auto':
             self._event_auto_limit = True
+
+    def handle_left_click_in_img(self, y_coord):
+        self.face_enforcer.set_y_limit_low(y_limit_low=y_coord)
 
     def handle_auto_limit(self, face):
         """Fancy protocol, saves N faces, takes average and sets the y limit with a tilt"""
@@ -128,7 +131,7 @@ class Behave(object):
                 self.gui.show_msg(self._event_msg)
 
             #Check user input, this part needs to be after the frame has been created and fed to gui:
-            self.dispatch_gui_events()
+            self.dispatch_keyb_events()
             if self._event_debug:
                 self.gui.show_debug(self.timer)
             #TODO: if face detected, work counter counts:

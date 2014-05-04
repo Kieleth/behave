@@ -1,23 +1,36 @@
 import cv2
 
 class CX_Gui(object):
-    def __init__(self, window_name, enforcer, frame_size):
-        self.enforcer = enforcer
+    def __init__(self, window_name, frame_size, callback_obj):
         self.window_name = window_name
         self.a_frame = None
         self.frame_width = frame_size[0]
         self.frame_heigth = frame_size[1]
+        self.callback_obj = callback_obj
 
     def initialize_gui(self):
         # Create a window and bind function(s) to window
         cv2.namedWindow(self.window_name)
         #below should be modifiable:
-        cv2.setMouseCallback(self.window_name, self.set_y_limit_low)
+        cv2.setMouseCallback(self.window_name, self.mouse_event_generator)
 
     # mouse callback function sets red line to enforce
-    def set_y_limit_low(self, event, x, y, flags, param):
+    def mouse_event_generator(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
-            self.enforcer.set_y_limit_low(y_limit_low=y)
+            self.callback_obj.handle_left_click_in_img(y_coord=y)
+
+    @staticmethod
+    def keyb_event_generator():
+        #key handler:
+        k = cv2.waitKey(1) & 0xFF
+        if k == ord('q') or k == 27:
+            return 'quit'
+        elif k == ord('d'):
+            return 'debug'
+        elif k == ord('t'):
+            return 'toggle_work_timer'
+        elif k == ord(' '):
+            return 'set_limit_auto'
 
     def feed_frame(self, a_frame):
         self.a_frame = a_frame
@@ -49,19 +62,6 @@ class CX_Gui(object):
         x, y, w, h = face
         cv2.rectangle(self.a_frame, (x, y), (x + w, y + h), (255, 0, 0), 1)   
         self.display_rectangle_coords(x, y, w, h)
-
-    @staticmethod
-    def get_key_event():
-        #key handler:
-        k = cv2.waitKey(1) & 0xFF
-        if k == ord('q') or k == 27:
-            return 'quit'
-        elif k == ord('d'):
-            return 'debug'
-        elif k == ord('t'):
-            return 'toggle_work_timer'
-        elif k == ord(' '):
-            return 'set_limit_auto'
 
     def show_controls(self):
         cv2.putText(self.a_frame, "Behave!!! :)", (10, 130),
