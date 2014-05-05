@@ -3,6 +3,7 @@ class EnforceFaceLimits(object):
         self.wrongs_count = 0
         self.oks_count = 0
         self.nasty_trigger = trigger
+        self.y_limit_low = 3000
 
         self.set_wrongs_and_oks()
         self.set_y_limit_low()
@@ -14,6 +15,10 @@ class EnforceFaceLimits(object):
 
     def set_y_limit_low(self, y_limit_low=None):
         self.y_limit_low = 3000 if not y_limit_low else y_limit_low
+
+    def adjust_y_limit_low_after_scold(self):
+        self.y_limit_low += 1
+
 
     def reset_wrongs(self):
         self.wrongs_count = 0

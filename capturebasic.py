@@ -99,6 +99,8 @@ class Behave(object):
         action_needed, msg = self.face_enforcer.check_face(face)
         if action_needed:
             action_needed()
+            #slight relax in the limit, trying to adjust.TODO:only reduces.
+            self.face_enforcer.adjust_y_limit_low_after_scold()
         if msg:
             return msg
     
@@ -127,7 +129,7 @@ class Behave(object):
                         self.gui.show_face(face)
                     if self._event_auto_limit:
                         self._event_msg = self.handle_auto_limit(face)
-                    if self._event_enforcing:
+                    elif self._event_enforcing:
                         self._event_msg = self.handle_enforce(face)
 
             #this if is out of the process one to leave the msg in between frames
@@ -141,6 +143,7 @@ class Behave(object):
             #TODO: if face detected, work counter counts:
             if self.work_timer.is_started:
                 self.gui.show_contdown(self.work_timer.get_time_left())
+                
             #Add on-screen controls and limits visual guide:
             self.gui.show_controls()
             self.gui.show_limits(self.face_enforcer)

@@ -1,10 +1,11 @@
 ###Project:
-Behave is a little app to help people control themselves in front of a computer.
+Behave is a helper app that allows people control themselves in front of a computer.
 
 ####Implementation:
-A Python script doing basic computer vision that takes control the webcam and with OpenCV processes the video stream to capture what is told to do.
+Some Python code doing computer vision that takes control of the webcam and, througth OpenCV, processes the video stream enforcing certain parameters set by the user.
 
 ####Features:
+- 140504 debug option // work timer countdown of 50 minutes // Auto-adjust functionality included.
 - 140329 User can set treshold by clicking in image.
 - 140323 Captures the position of the face, makes sure that it does not go below cerain treshold. Keeps back in straigth position.
 
@@ -17,5 +18,4 @@ A Python script doing basic computer vision that takes control the webcam and wi
 
 ####TODO:
 - 140324 --> FIX/handle "Camera dropped frame!" output
-- 140329 --> PACK it so it can be used in "one click"
-- 140329 --> Reduce cpu usage.
+- 140329 --> Reduce cpu usage. Done partially, with processing only every 5th frame

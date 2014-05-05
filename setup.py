@@ -7,7 +7,7 @@ from cx_Freeze import setup, Executable
 # console application).
 
 setup(  name = "behave",
-        version = "0.1",
+        version = "0.2",
         description = "Behave, face detection to help you",
         options = {'build_exe':
                     {'includes': ['numpy'],
