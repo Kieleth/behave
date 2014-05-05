@@ -66,20 +66,20 @@ class CX_Gui(object):
         self.display_rectangle_coords(x, y, w, h)
 
     def show_controls(self):
-        cv2.putText(self.a_frame, "Behave!!! :)", (10, 130),
+        cv2.putText(self.a_frame, "Behave!!! :)", (10, 400),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
-        cv2.putText(self.a_frame, "Click with the mouse to set face limit", (10, 170),
+        cv2.putText(self.a_frame, "Click with the mouse to set face limit", (10, 420),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
-        cv2.putText(self.a_frame, "Or press 'space' to have the limit automatically set", (10, 190),
+        cv2.putText(self.a_frame, "Or press 'space' to have the limit automatically set", (10, 440),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
-        cv2.putText(self.a_frame, "Press 't' to set the work timer", (10, 210),
+        cv2.putText(self.a_frame, "Press 't' to set the work timer", (10, 460),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
-        cv2.putText(self.a_frame, "Press 'd' to debug, 'q' to quit", (10, 230),
+        cv2.putText(self.a_frame, "Press 'd' to debug, 'q' to quit", (10, 480),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
     
     def show_msg(self, msg):
             cv2.putText(self.a_frame, msg, (10, 35),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255))
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255))
 
     def show_image(self):
         cv2.imshow(self.window_name, self.a_frame)

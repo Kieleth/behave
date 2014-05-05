@@ -33,16 +33,19 @@ class Capturer(object):
     """ provides interface to the camera
     #TODO: automatize process of capturing by testing each channel
     """
-    def __init__(self, channel=0):
+    def __init__(self, channel=0, cam_width=800, cam_height=600):
         try:
             self._camera = cv2.VideoCapture(channel)
         except Exception as e:
             sys.exit('Unable to use the webcam, error: %s' % str(e))
 
         self._frame = None
+        self.cam_width = cam_width
+        self.cam_height = cam_height
+
         self._channel = channel
-        self.cam_width = int(self._camera.get(3)) #cv2.CAP_PROP_FRAME_WIDTH)
-        self.cam_height = int(self._camera.get(4)) #cv2.CAP_PROP_FRAME_HEIGHT) 
+        self._camera.set(cv2.CAP_PROP_FRAME_WIDTH, cam_width)
+        self._camera.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_height)
 
     def get_camera_width_heigth(self):
         return self.cam_width, self.cam_height
