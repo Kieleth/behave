@@ -6,6 +6,7 @@ if __name__ == '__main__':
     logger = multiprocessing.log_to_stderr()
     logger.setLevel(multiprocessing.SUBDEBUG)
 
+    #Queue len of 3 gives some buffer?
     q_frames_captured = multiprocessing.Queue(3)
     e_frame_captured = multiprocessing.Event()
 
