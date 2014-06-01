@@ -12,6 +12,9 @@ def flip_frame(frame):
     #1 flips horizontally:
     return cv2.flip(frame, 1)
 
+def color_frame(frame):
+    return cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
+
 def convert_to_gray_and_equalize(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.equalizeHist(gray)

@@ -1,7 +1,7 @@
 import classifiers
 import enforcers
 from utils import flip_frame, CvTimer, CountdownTimer, Capturer, say_warning, convert_to_gray_and_equalize, find_data_file, FPSCounter
-from gui_managers import CX_Gui
+from cv_gui import CX_Gui
 
 class Behave(object):
     def __init__(self):

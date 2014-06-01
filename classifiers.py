@@ -15,7 +15,7 @@ class CascadeClassifier(object):
         self.scale_factor = 1.3 if not scale_factor else scale_factor
         self.min_neigh = 4 if not min_neigh else min_neigh
         self.flags = cv2.CASCADE_SCALE_IMAGE if not flags else flags
-        self.minSize = (200, 200) if not minSize else minSize
+        self.minSize = (100, 100) if not minSize else minSize
         self.maxSize = None if not maxSize else MaxSize # (300, 300)
 
     def detect_multiscale(self, image):
