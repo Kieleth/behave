@@ -7,17 +7,28 @@ def gui_mainloop(the_q, event):
             tk.Tk.__init__(self, None)
 
             self.parent = None
-            self.bind('<Escape>', lambda e: self.quit())
+            self.title("Behave!")
 
-            self.lmain = tk.Label(self)
+            button = tk.Button(self, text='Stop', width=25, command=self.destroy)
+            button.grid(row=1, column=1, sticky=tk.N)
 
-            self.lmain.pack()
+            canvas_width = 900
+            canvas_height = 700
+            self.canvas = tk.Canvas(self, 
+                       width=canvas_width, 
+                       height=canvas_height)
+
+            imgfile = '/Users/Luis/Desktop/pepe.png'
+            imgopen = Image.open(imgfile)
+            self.canvas.imgtk = ImageTk.PhotoImage(imgopen)
+            self.canvas.image_on_canvas = self.canvas.create_image(10,10, anchor=tk.NW, image=self.canvas.imgtk)
+            self.canvas.grid(row=0, column=0)
 
         def update_frame(self, img):
             img = Image.fromarray(img)
             imgtk = ImageTk.PhotoImage(image=img)
-            self.lmain.imgtk = imgtk
-            self.lmain.configure(image=imgtk)
+            self.canvas.imgtk = imgtk
+            self.canvas.itemconfig(self.canvas.image_on_canvas, image=self.canvas.imgtk)
             self.update()
 
     print 'Tkinter is starting'

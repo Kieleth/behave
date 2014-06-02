@@ -21,6 +21,7 @@ def cam_loop(the_q, event):
         if frame is not None:
             if c == 5:
                 face = detect_face_in_frame(frame)
+                # TODO: get coordenates and pass them to tkinter.
                 print face
 
             frame = flip_frame(frame)
