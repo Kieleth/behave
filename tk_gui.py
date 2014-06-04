@@ -17,11 +17,7 @@ def gui_mainloop(the_q, event):
             self.canvas = tk.Canvas(self, 
                        width=canvas_width, 
                        height=canvas_height)
-
-            imgfile = '/Users/Luis/Desktop/pepe.png'
-            imgopen = Image.open(imgfile)
-            self.canvas.imgtk = ImageTk.PhotoImage(imgopen)
-            self.canvas.image_on_canvas = self.canvas.create_image(10,10, anchor=tk.NW, image=self.canvas.imgtk)
+            self.canvas.image_on_canvas = self.canvas.create_image(10,10, anchor=tk.NW, image=None)
             self.canvas.grid(row=0, column=0)
 
         def update_frame(self, img):
