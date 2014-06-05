@@ -18,7 +18,7 @@ class CascadeClassifier(object):
         # this is important for capturing!!!: depends of the size of the
         # image, it should be configured at instantiating:
         self.minSize = (100, 100) if not minSize else minSize
-        self.maxSize = None if not maxSize else MaxSize # (300, 300)
+        self.maxSize = None if not maxSize else maxSize # (300, 300)
 
     def detect_multiscale(self, image):
         """ calls detectMultiSsale with the parameters present in the class, returns

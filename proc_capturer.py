@@ -19,6 +19,7 @@ def cam_loop(the_q, event):
 
         frame = capturer.get_frame()
         if frame is not None:
+            # detect only every 5th frame
             if c == 5:
                 face = detect_face_in_frame(frame)
                 # TODO: get coordenates and pass them to tkinter.
@@ -29,6 +30,6 @@ def cam_loop(the_q, event):
             
 
             the_q.put(frame)
-            #event.set()
+            event.set()
 
 
