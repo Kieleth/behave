@@ -15,10 +15,11 @@ def flip_frame(frame):
 def color_frame(frame):
     return cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
 
-def convert_to_gray_and_equalize(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.equalizeHist(gray)
-    return gray
+def convert_to_gray(frame):
+    return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    
+def equalize(frame):
+    return cv2.equalizeHist(frame)
 
 #cx_freeze data hanlder
 def find_data_file(filename):

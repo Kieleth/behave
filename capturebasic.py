@@ -1,6 +1,6 @@
 import classifiers
 import enforcers
-from utils import flip_frame, CvTimer, CountdownTimer, Capturer, say_warning, convert_to_gray_and_equalize, find_data_file, FPSCounter
+from utils import flip_frame, CvTimer, CountdownTimer, Capturer, say_warning, convert_to_gray, equalize, find_data_file, FPSCounter
 from cv_gui import CX_Gui
 
 class Behave(object):
@@ -90,8 +90,9 @@ class Behave(object):
         return msg
 
     def detect_face_in_frame(self, a_frame): 
-        a_frame_prepared = convert_to_gray_and_equalize(a_frame)
-        faces_list = self.face_classifier.detect_multiscale(a_frame_prepared)
+        a_frame = convert_to_gray(a_frame)
+        a_frame = equalize(a_frame)
+        faces_list = self.face_classifier.detect_multiscale(a_frame)
 
         return faces_list[0] if len(faces_list) == 1 else None
 
