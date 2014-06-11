@@ -31,8 +31,8 @@ def gui_mainloop(q_frames, q_control, e_frame_captured, e_from_gui):
             self.quit = tk.Button(self.frame, text='Quit', width=25, command=self.destroy)
             self.quit.grid(row=3, column=1, sticky=tk.N)
 
-            canvas_width = 650 #810
-            canvas_height = 490 #610
+            canvas_width = 810 #700 #650 
+            canvas_height = 610 #490 #610
             self.canvas = tk.Canvas(self, 
                        width=canvas_width, 
                        height=canvas_height)
@@ -47,19 +47,16 @@ def gui_mainloop(q_frames, q_control, e_frame_captured, e_from_gui):
 
         def stop_camera(self):
             #TODO: disable buttom after click, check if it created ok.
-            print 'CLICK stop webcam capture...'
             self.q_control.put('stop')
             self.e_from_gui.set()
 
         def start_camera(self):
             #TODO: disable buttom after click, check if it created ok.
-            print 'CLICK on start webcam capture...'
             self.q_control.put('start')
             self.e_from_gui.set()
 
         def show_hide_camera(self):
             #TODO: disable buttom after click, check if it created ok.
-            print 'CLICK show/hide webcam capture...'
             self.q_control.put('show_hide_camera')
             self.e_from_gui.set()
 
@@ -99,6 +96,4 @@ def gui_mainloop(q_frames, q_control, e_frame_captured, e_from_gui):
     q_control.put('quit')
     e_from_gui.set()
 
-    #print 'going to sleep 10 secs'
-    #import time; time.sleep(10)
     print 'Tkinter process is stopping...'

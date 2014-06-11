@@ -31,7 +31,7 @@ def cam_loop(q_frames, q_control, event):
                 break
             
             if control == 'show_hide_camera':
-                print 'debug here', control
+                print 'show_hide received from gui'
                 if mode == 'show':
                     mode = 'hide'
                 elif mode == 'hide':
@@ -58,6 +58,8 @@ def cam_loop(q_frames, q_control, event):
         if frame_took > 0 and frame_took < FRAME_TIME:
             #print 'frame delayed %s' % str(FRAME_TIME - frame_took)
             time.sleep(FRAME_TIME - frame_took)
-
+ 
+    q_frames.cancel_join_thread()
+    q_control.cancel_join_thread()
     print 'cam_loop process is stopping...'
 

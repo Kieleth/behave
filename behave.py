@@ -3,10 +3,9 @@ from tk_gui import gui_mainloop
 from proc_capturer import cam_loop
 
 if __name__ == '__main__':
-    logger = multiprocessing.log_to_stderr()
-    logger.setLevel(multiprocessing.SUBDEBUG)
+    #logger = multiprocessing.log_to_stderr()
+    #logger.setLevel(multiprocessing.SUBDEBUG)
 
-    #Queue len of 3 gives some buffer?
     q_frames_captured = multiprocessing.Queue(1)
     q_from_gui = multiprocessing.Queue(1)
     q_to_capturer = multiprocessing.Queue(1)
@@ -43,7 +42,8 @@ if __name__ == '__main__':
                     print 'webcam capture process received "stop" from gui'
                     q_to_capturer.put('stop')
 
-                    p_cap.join()
+                    #p_cap.join()
+                    p_cap.terminate()
                     print 'p_cap process has joined'
 
                 if control == 'show_hide_camera':
@@ -53,22 +53,20 @@ if __name__ == '__main__':
                 if control == 'quit':
                     #BUG: quit cannot happen without having it started:
                     print ' received quit from gui'
-
-                    # stopping p_cap process
-                    if p_cap:
-                        print 'Entering to stop p_cap'
-                        q_to_capturer.put('stop')
-                        print 'it does the put'
-                        #FIXME: p_cap.join()
-                        p_cap.terminate()
-                        print 'p_cap process has joined'
-
                     break
 
             # clears the event so it waits again.
             e_from_gui.clear()
 
+        # stopping p_cap process
+        if p_cap:
+            print 'Entering to stop p_cap'
+            q_to_capturer.put('stop')
 
+            #p_cap.join()
+            #print 'p_cap process has joined'
+            p_cap.terminate()
+        # and stopping gui 
         p_gui.join()
         print 'p_gui process has joined'
 
