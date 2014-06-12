@@ -7,9 +7,9 @@ class CascadeClassifier(object):
         except IOError as e:
             raise e
 
-        self.set_cascade_params()
+        self.set_params()
 
-    def set_cascade_params(self, scale_factor=None, min_neigh=None, minSize=None, maxSize=None, flags=None):
+    def set_params(self, scale_factor=None, min_neigh=None, minSize=None, maxSize=None, flags=None):
         """Allows to modify the detector parameters on the fly, has defaults if any
            not initialized"""
         self.scale_factor = 1.3 if not scale_factor else scale_factor
