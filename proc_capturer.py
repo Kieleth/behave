@@ -3,39 +3,33 @@ import time
 from utils import Capturer, flip_frame, circular_counter, convert_to_gray, equalize
 import classifiers
 
-face_classifier = classifiers.CascadeClassifier('cascades/haarcascade_frontalface_alt.xml')
 
-FPS = 15
-FRAME_TIME = 1.0 / FPS
+def cam_loop(q_frames, q_control):
+    face_classifier = classifiers.CascadeClassifier('cascades/haarcascade_frontalface_alt.xml')
 
-def detect_face_in_frame(a_frame):
-    a_frame_prepared = equalize(a_frame)
-    # watch out for detect_multiscale and the size of capture!
-    faces_list = face_classifier.detect_multiscale(a_frame_prepared)
+    FPS = 15
+    FRAME_TIME = 1.0 / FPS
 
-    return faces_list[0] if len(faces_list) == 1 else None
+    def detect_face_in_frame(a_frame):
+        a_frame_prepared = equalize(a_frame)
+        # watch out for detect_multiscale and the size of capture!
+        faces_list = face_classifier.detect_multiscale(a_frame_prepared)
 
-def cam_loop(q_frames, q_control, event):
+        return faces_list[0] if len(faces_list) == 1 else None
+
     capturer = Capturer()
     count_5 = circular_counter(5)
-    mode = 'show'
+    show = False
 
     while True:
         start = time.time()
 
         if not q_control.empty():
             control = q_control.get()
-
-            if control == 'stop':
-                print 'webcam capture process received "stop" from gui'
-                break
             
             if control == 'show_hide_camera':
-                print 'show_hide received from gui'
-                if mode == 'show':
-                    mode = 'hide'
-                elif mode == 'hide':
-                    mode = 'show'
+                print( 'show_hide received from gui')
+                show = not show
 
         frame = capturer.get_frame()
         if frame is not None:
@@ -47,9 +41,9 @@ def cam_loop(q_frames, q_control, event):
             if count_5.next() == 5:
                 face = detect_face_in_frame(frame)
 
-            if mode == 'show':
+            if show:
                 q_frames.put((frame, face))
-            elif mode == 'hide':
+            else:
                 q_frames.put((None, face))
 
         # delay in the frame so it does not go beyond the FPS
@@ -59,7 +53,5 @@ def cam_loop(q_frames, q_control, event):
             #print 'frame delayed %s' % str(FRAME_TIME - frame_took)
             time.sleep(FRAME_TIME - frame_took)
  
-    q_frames.cancel_join_thread()
-    q_control.cancel_join_thread()
-    print 'cam_loop process is stopping...'
+    print( 'cam_loop process is stopping...')
 
