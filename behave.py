@@ -4,7 +4,7 @@ from proc_capturer import cam_loop
 
         
 if __name__ == '__main__':
-    freeze_support()
+    #freeze_support()
     #logger = multiprocessing.log_to_stderr()
     #logger.setLevel(multiprocessing.SUBDEBUG)
 
@@ -26,6 +26,7 @@ if __name__ == '__main__':
         gui.mainloop()
 
         p_cap.terminate()
+
     except KeyboardInterrupt:
         gui.destroy()
         p_cap.terminate()

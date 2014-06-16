@@ -1,6 +1,6 @@
 import time
 
-from utils import Capturer, flip_frame, circular_counter, convert_to_gray, equalize
+from utils import Capturer, flip_frame, circular_counter, convert_to_gray, equalize, find_data_file
 import classifiers
 
 # This function will be called as a process from behave module.
@@ -11,11 +11,11 @@ def cam_loop(q_frames, q_control):
     CAP = FPS
     send_frame = True
 
-    capturer = Capturer(cam_width=400, cam_height=300)
+    capturer = Capturer(cam_width=200, cam_height=150)
     count = circular_counter(CAP)
 
-    face_classifier = classifiers.CascadeClassifier('cascades/haarcascade_frontalface_alt.xml')
-    face_classifier.set_params(minSize=(50,50), maxSize=(150,150))
+    face_classifier = classifiers.CascadeClassifier(find_data_file('cascades/haarcascade_frontalface_alt.xml'))
+    face_classifier.set_params(minSize=(30,30), maxSize=(150,150))
 
     def detect_face_in_frame(a_frame):
         a_frame_prepared = equalize(a_frame)

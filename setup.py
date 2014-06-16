@@ -7,9 +7,9 @@ from cx_Freeze import setup, Executable
 # console application).
 
 setup(  name = "behave",
-        version = "0.2",
+        version = "0.3",
         description = "Behave, face detection to help you",
         options = {'build_exe':
                     {'includes': ['numpy'],
                         'include_files': ['cascades/', 'lib/']}},
-        executables = [Executable("capturebasic.py", )])
+        executables = [Executable("behave.py", )])

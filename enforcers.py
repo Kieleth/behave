@@ -30,11 +30,12 @@ class EnforceFaceLimits(object):
         # FACE POSITION CONTROL:
         x, y, w, h = face
         #mid_face_y is half the heigth of the face captured
-        mid_face_y = y + (h / 2)
+        #mid_face will not work with new gui
+        #mid_face_y = y + (h / 2)
         #FIXME I dont like this:
         msg = None
 
-        if mid_face_y > self.y_limit_low:
+        if  y + h > self.y_limit_low:
             self.wrongs_count += 1
             self.reset_oks()
             #FIXME this action is not good:
