@@ -18,7 +18,7 @@ class TkGui(tk.Tk):
         self.f_main = tk.Frame(self, background='snow3')
         self.f_main.grid()
 
-        self.create_control()
+        self.create_controls()
         self.create_canvas()
 
         self.face_enforcer = enforcers.EnforceFaceLimits(say_warning)
@@ -27,6 +27,29 @@ class TkGui(tk.Tk):
         self._auto_faces = list()
         self._state = 'enforce'
 
+    def create_controls(self):
+
+        self.f_control = tk.Frame(self.f_main)
+        self.f_control.grid(row=0, column=0, sticky=tk.N)
+
+        self.b_show_hide = tk.Button(self.f_control, text='Toggle camera show/hide', width=20,
+                                      command=self.show_hide_camera, font='Helvetica 13')
+        self.b_show_hide.grid()
+
+        self.b_auto_adjust = tk.Button(self.f_control, text='Auto adjust protocol', width=20,
+                                      command=self.auto_adjust, font='helvetica 13', 
+                                      fg='grey')
+        self.b_auto_adjust.grid()
+
+        self.b_full_stop = tk.Button(self.f_control, text='Stops/Resumes the app', width=20,
+                                      command=self.stop_resume, font='helvetica 13', 
+                                      fg='grey')
+        self.b_full_stop.grid()
+
+        self.b_quit = tk.Button(self.f_control, text='Quit', width=20,
+                                command=self.destroy, font='Helvetica 13')
+        self.b_quit.grid()
+
     def show_hide_camera(self):
         #TODO: disable buttom after click, check if it created ok.
         self.q_control.put('show_hide_camera')
@@ -34,23 +57,9 @@ class TkGui(tk.Tk):
     def auto_adjust(self):
         self._state = 'auto_adjust'
 
-    def create_control(self):
-
-        self.f_control = tk.Frame(self.f_main)
-        self.f_control.grid(row=0, column=0, sticky=tk.N)
-
-        self.b_show_hide = tk.Button(self.f_control, text='Toggle show/hide camera', width=20,
-                                      command=self.show_hide_camera, font='Helvetica 13')
-        self.b_show_hide.grid()
-
-        self.b_auto_adjust = tk.Button(self.f_control, text='Auto adjust', width=20,
-                                      command=self.auto_adjust, font='Helvetica 13', 
-                                      fg='grey')
-        self.b_auto_adjust.grid()
-
-        self.b_quit = tk.Button(self.f_control, text='Quit', width=20,
-                                command=self.destroy, font='Helvetica 13')
-        self.b_quit.grid()
+    def stop_resume(self):
+        #TODO: disable rest of the buttoms after click
+        self.q_control.put('start_stop')
 
     def create_canvas(self):
         canvas_w = 200
@@ -120,6 +129,7 @@ class TkGui(tk.Tk):
         else:
             color = 'red'
             width = 2
+        print 'discovered a face'
         self.canvas.itemconfig(self.canvas.face, outline=color, width=width)
 
         #self.canvas.coords(self.canvas.pos, 2 * x, y + h / 2.0)

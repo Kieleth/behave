@@ -10,9 +10,10 @@ def cam_loop(q_frames, q_control):
     FRAME_TIME = 1.0 / FPS
     CAP = FPS
     send_frame = True
+    working = True
 
     capturer = Capturer(cam_width=200, cam_height=150)
-    count = circular_counter(CAP)
+    counter = circular_counter(CAP)
 
     face_classifier = classifiers.CascadeClassifier(find_data_file('cascades/haarcascade_frontalface_alt.xml'))
     face_classifier.set_params(minSize=(30,30), maxSize=(150,150))
@@ -30,35 +31,48 @@ def cam_loop(q_frames, q_control):
             frame = flip_frame(frame)
             return convert_to_gray(frame)
 
+    def do_send_frame():
+        face = None
+        frame = prepare_frame()
+        # detect only every CAP'th frame
+        if counter.next() == CAP:
+            face = detect_face_in_frame(frame)
+        q_frames.put((frame, face))
+
+    def dont_send_frame():
+        if counter.next() == CAP:
+            face = None
+            frame = prepare_frame()
+            face = detect_face_in_frame(frame)
+            q_frames.put((None, face))
+
+    def adjust_to_fps(start_time):
+        # delay in the frame so the while runs at FPS-speed
+        end_time = time.time()
+        loop_took = end_time - start_time
+        if loop_took < FRAME_TIME:
+            print 'frame delayed %s' % str(FRAME_TIME - loop_took)
+            time.sleep(FRAME_TIME - loop_took)
+ 
     while True:
-        start = time.time()
+        start_time = time.time()
 
         if not q_control.empty():
             control = q_control.get()
             if control == 'show_hide_camera':
                 print( 'show_hide received from gui')
                 send_frame = not send_frame
+            if control == 'start_stop':
+                print( 'received start_stop from gui')
+                working = not working
 
-        face = None
-        if send_frame:
-            frame = prepare_frame()
-            # detect only every 5th frame
-            if count.next() == CAP:
-                face = detect_face_in_frame(frame)
-            q_frames.put((frame, face))
+        if working:
+            if send_frame:
+                do_send_frame()
+            else:
+                dont_send_frame()
 
-        elif not send_frame:
-            if count.next() == CAP:
-                frame = prepare_frame()
-                face = detect_face_in_frame(frame)
-                q_frames.put((None, face))
+        adjust_to_fps(start_time)
 
-        # delay in the frame so it does not go beyond the FPS
-        end = time.time()
-        loop_took = end - start
-        if loop_took > 0 and loop_took < FRAME_TIME:
-            #print 'frame delayed %s' % str(FRAME_TIME - frame_took)
-            time.sleep(FRAME_TIME - loop_took)
- 
     print( 'cam_loop process is stopping...')
 
