@@ -5,7 +5,7 @@ import enforcers
 from utils import say_warning
 
 class TkGui(tk.Tk):
-    def __init__(self, q_frames, q_control):
+    def __init__(self, q_frames, q_control, verboseprint):
         tk.Tk.__init__(self, None)
 
         self.parent = None
@@ -26,6 +26,8 @@ class TkGui(tk.Tk):
         self._auto_tilt = 10
         self._auto_faces = list()
         self._state = 'enforce'
+
+        self._print = verboseprint
 
     def create_controls(self):
 
@@ -51,7 +53,6 @@ class TkGui(tk.Tk):
         self.b_quit.grid()
 
     def show_hide_camera(self):
-        #TODO: disable buttom after click, check if it created ok.
         self.q_control.put('show_hide_camera')
 
     def auto_adjust(self):
@@ -65,6 +66,8 @@ class TkGui(tk.Tk):
         canvas_w = 200
         canvas_h = 150
         n_lines = 40
+        self._white_img = Image.new("RGB", [canvas_w,canvas_h])#, (255,255,255))
+
         self.canvas = tk.Canvas(self.f_main, width=canvas_w, height=canvas_h,
                                 background="snow2")
         self._margin = 1
@@ -82,15 +85,20 @@ class TkGui(tk.Tk):
             obj = self.canvas.create_line(0,0,0,0, fill='red2', width=1, dash=(3,3))
             setattr(self.canvas, 'line' + str(l), obj )
 
-        def motion(event):
+        #mouse-capturing events
+        def mouse_over_webcam(event):
             self.canvas.coords(self.canvas.select_line, 0, event.y, canvas_w, event.y)
             
-        def left_click(event):
+        def left_click_on_webcam(event):
             self.draw_y_limit(event.y)
             self.face_enforcer.set_y_limit_low(y_limit_low=event.y)
 
-        self.canvas.bind('<Motion>', motion)
-        self.canvas.bind('<Button-1>', left_click)
+        def mouse_leaves(event):
+            self.canvas.coords(self.canvas.select_line, 0, 0, 0, 0)
+
+        self.canvas.bind('<Motion>', mouse_over_webcam)
+        self.canvas.bind('<Button-1>', left_click_on_webcam)
+        self.canvas.bind('<Leave>', mouse_leaves)
 
         self.canvas.grid(row=1, column=0, rowspan=5)
 
@@ -107,8 +115,11 @@ class TkGui(tk.Tk):
             self.canvas.coords(obj, pos_x, 150, pos_x, y)
 
     def draw_img_in_canvas(self, img):
-        img = Image.fromarray(img)
-        imgtk = ImageTk.PhotoImage(image=img)
+        if img is not None:
+            img = Image.fromarray(img)
+            imgtk = ImageTk.PhotoImage(image=img)
+        else:
+            imgtk = ImageTk.PhotoImage(image=self._white_img)
         self.canvas.imgtk = imgtk
         self.canvas.itemconfig(self.canvas.webcam, image=self.canvas.imgtk)
 
@@ -129,7 +140,7 @@ class TkGui(tk.Tk):
         else:
             color = 'red'
             width = 2
-        print 'discovered a face'
+        self._print('discovered a face')
         self.canvas.itemconfig(self.canvas.face, outline=color, width=width)
 
         #self.canvas.coords(self.canvas.pos, 2 * x, y + h / 2.0)
@@ -189,8 +200,7 @@ class TkGui(tk.Tk):
                 elif self._state == 'auto_adjust':
                     msg = self.handle_auto_adjust(face)
                 self.draw_msg_in_canvas(msg)
-            if img is not None:
-                self.draw_img_in_canvas(img)
+            self.draw_img_in_canvas(img)
         
         self.canvas.after(50, self.update_frame)
 
