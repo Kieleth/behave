@@ -30,6 +30,8 @@ class TkGui(tk.Tk):
         self._print = verboseprint
 
     def create_controls(self):
+        self._buttoms_disabled = False
+        self._hide_camera = False
 
         self.f_control = tk.Frame(self.f_main)
         self.f_control.grid(row=0, column=0, sticky=tk.N)
@@ -43,7 +45,7 @@ class TkGui(tk.Tk):
                                       fg='grey')
         self.b_auto_adjust.grid()
 
-        self.b_full_stop = tk.Button(self.f_control, text='Stops/Resumes the app', width=20,
+        self.b_full_stop = tk.Button(self.f_control, text='Stops/Resumes capturing', width=20,
                                       command=self.stop_resume, font='helvetica 13', 
                                       fg='grey')
         self.b_full_stop.grid()
@@ -54,19 +56,33 @@ class TkGui(tk.Tk):
 
     def show_hide_camera(self):
         self.q_control.put('show_hide_camera')
+            
+        self._hide_camera = not self._hide_camera
 
     def auto_adjust(self):
         self._state = 'auto_adjust'
 
     def stop_resume(self):
-        #TODO: disable rest of the buttoms after click
         self.q_control.put('start_stop')
+
+        self._buttoms_disabled = not self._buttoms_disabled
+        if self._buttoms_disabled:
+            state = 'disabled'
+        else:
+            state = 'normal'
+        self.b_show_hide.config(state=state)
+        self.b_auto_adjust.config(state=state)
+            
+        # deletes the face from the canvas
+        self.canvas.coords(self.canvas.face, 0, 0, 0, 0)
+
+
 
     def create_canvas(self):
         canvas_w = 200
         canvas_h = 150
         n_lines = 40
-        self._white_img = Image.new("RGB", [canvas_w,canvas_h])#, (255,255,255))
+        self._white_img = Image.new("RGB", [canvas_w,canvas_h], (84, 84, 84))#, (255,255,255))
 
         self.canvas = tk.Canvas(self.f_main, width=canvas_w, height=canvas_h,
                                 background="snow2")
