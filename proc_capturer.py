@@ -4,9 +4,8 @@ from utils import Capturer, flip_frame, circular_counter, convert_to_gray, equal
 import classifiers
 
 # This function will be called as a process from behave module.
-def cam_loop(q_frames, q_control, verboseprint):
+def cam_loop(q_frames, q_control, FPS, verboseprint):
 
-    FPS = 12
     FRAME_TIME = 1.0 / FPS
     CAP = FPS
 

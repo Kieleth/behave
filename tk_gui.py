@@ -5,7 +5,7 @@ import enforcers
 from utils import say_warning
 
 class TkGui(tk.Tk):
-    def __init__(self, q_frames, q_control, verboseprint):
+    def __init__(self, q_frames, q_control, FPS, verboseprint):
         tk.Tk.__init__(self, None)
 
         self.parent = None
@@ -13,6 +13,7 @@ class TkGui(tk.Tk):
 
         self.q_frames = q_frames
         self.q_control = q_control
+        self._frame_time = int((1.0 / FPS) * 1000)
 
         #self.w = tk.Toplevel(self, bg='blue')
         self.f_main = tk.Frame(self, background='snow3')
@@ -218,5 +219,5 @@ class TkGui(tk.Tk):
                 self.draw_msg_in_canvas(msg)
             self.draw_img_in_canvas(img)
         
-        self.canvas.after(50, self.update_frame)
+        self.canvas.after(self._frame_time, self.update_frame)
 
