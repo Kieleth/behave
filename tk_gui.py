@@ -165,7 +165,8 @@ class ControlsFrame(tk.Frame):
                 state = 'disabled'
             else:
                 state = 'normal'
-            self.b_show_hide.config(state=state)
+            #self.b_show_hide.config(state=state)
+            self.b_show_hide['state'] = state
             self.b_auto_adjust.config(state=state)
             self.root.canvas.hide_face()
 

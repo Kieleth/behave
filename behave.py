@@ -32,7 +32,7 @@ if __name__ == '__main__':
         from tk_gui import TkGui
         print ('Tkinter is starting')
         gui = TkGui(q_frames, q_control, FPS, verboseprint)
-        gui.update_frame()
+        gui.callback_update_frame()
         gui.mainloop()
 
         p_capturer.terminate()
