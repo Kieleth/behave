@@ -28,9 +28,9 @@ if __name__ == '__main__':
         p_capturer.start()
         verboseprint( 'proces p_cap is started with PID "%s"' % p_capturer.pid)
 
-        print ('Tkinter is starting')
         # BUG in tkinter-multiprocessing, tkimport after the process fork:
         from tk_gui import TkGui
+        print ('Tkinter is starting')
         gui = TkGui(q_frames, q_control, FPS, verboseprint)
         gui.update_frame()
         gui.mainloop()

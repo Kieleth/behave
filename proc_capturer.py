@@ -53,7 +53,7 @@ def cam_loop(q_frames, q_control, FPS, verboseprint):
  
     def main_loop():
         send_frame = True
-        working_switch = True
+        is_working = True
 
         while True:
             start_time = time.time()
@@ -65,9 +65,9 @@ def cam_loop(q_frames, q_control, FPS, verboseprint):
                     send_frame = not send_frame
                 if control == 'start_stop':
                     verboseprint( 'received start_stop from gui')
-                    working_switch = not working_switch
+                    is_working = not is_working
 
-            if working_switch:
+            if is_working:
                 if send_frame:
                     send_frame_and_face()
                 else:
