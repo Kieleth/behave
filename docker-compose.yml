@@ -1,11 +1,34 @@
 services:
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - behave-db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=behave
+      - POSTGRES_PASSWORD=${BEHAVE_DB_PASSWORD:-behave-dev}
+      - POSTGRES_DB=behave
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U behave"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   api:
     build: ./backend
     network_mode: host
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
-      - BEHAVE_DATABASE_URL=postgresql+asyncpg://behave:${BEHAVE_DB_PASSWORD}@localhost:5432/behave
-      - BEHAVE_JWT_SECRET=${JWT_SECRET}
-      - BEHAVE_CLAUDE_API_KEY=${CLAUDE_API_KEY}
-      - BEHAVE_APPLE_TEAM_ID=${APPLE_SIGN_IN_TEAM_ID}
-      - BEHAVE_APPLE_KEY_ID=${APPLE_SIGN_IN_KEY_ID}
+      - BEHAVE_DATABASE_URL=postgresql+asyncpg://behave:${BEHAVE_DB_PASSWORD:-behave-dev}@localhost:5433/behave
+      - BEHAVE_JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - BEHAVE_CLAUDE_API_KEY=${CLAUDE_API_KEY:-}
+      - BEHAVE_APPLE_TEAM_ID=${APPLE_SIGN_IN_TEAM_ID:-}
+      - BEHAVE_APPLE_KEY_ID=${APPLE_SIGN_IN_KEY_ID:-}
     restart: unless-stopped
+
+volumes:
+  behave-db:

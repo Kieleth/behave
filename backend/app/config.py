@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+asyncpg://behave:behave@localhost:5432/behave"
+    database_url: str = "postgresql+asyncpg://behave:behave-dev@localhost:5433/behave"
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expire_hours: int = 720  # 30 days
