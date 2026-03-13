@@ -1,0 +1,32 @@
+project_slug: behave
+services:
+  - name: api
+    port: 8300
+    domain: behave.kieleth.com
+    network: host
+    health_path: /health
+
+routes:
+  - path: /health
+    upstream: api:8300
+    public: true
+  - path: /auth/
+    upstream: api:8300
+    public: true
+    rate_limit: "auth:10:nodelay"
+  - path: /api/
+    upstream: api:8300
+    public: true
+    rate_limit: "api:50:nodelay"
+
+deploy:
+  compose_file: docker-compose.yml
+  post_deploy:
+    - "docker compose exec api alembic upgrade head"
+
+secrets:
+  - BEHAVE_DB_PASSWORD
+  - JWT_SECRET
+  - CLAUDE_API_KEY
+  - APPLE_SIGN_IN_TEAM_ID
+  - APPLE_SIGN_IN_KEY_ID

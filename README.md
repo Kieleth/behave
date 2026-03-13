@@ -1,22 +1,63 @@
-###Project:
-Behave is a helper app that allows people control themselves in front of a computer.
+# Behave
 
-####Implementation:
-Some Python code doing computer vision that takes control of the webcam and, througth OpenCV, processes the video stream enforcing certain parameters set by the user.
+AI-powered behavioral coaching for remote professionals. Uses on-device computer vision and speech analysis to help you improve posture, facial expressions, habits, and communication in real-time.
 
-####Features:
-- 140505 Camera capture reduced to 800x600 and ready to be configurable
-- 140504 debug option // work timer countdown of 50 minutes // Auto-adjust functionality included.
-- 140329 User can set treshold by clicking in image.
-- 140323 Captures the position of the face, makes sure that it does not go below cerain treshold. Keeps back in straigth position.
+## Architecture
 
-####Requirements:
-(At the moment this are the specs of the dev environment that works):
-- Mac Os 10.8.5
-- OpenCv version 2.4.7
-- Python 2.7 in 32-bit version (should work in x64)
-- Webcam!
+- **iOS app** (Swift/SwiftUI) — all detection runs on-device via Apple Vision framework (Neural Engine)
+- **Backend API** (FastAPI) — auth, data sync, LLM coaching via Claude
+- **Deployment** — Shelob on kieleth-sandbox (behave.kieleth.com)
 
-####TODO:
-- 140324 --> FIX/handle "Camera dropped frame!" output
-- 140329 --> Reduce cpu usage. Done partially, with processing only every 5th frame
+## Detection pipeline
+
+| Detector | Framework | Output |
+|---|---|---|
+| Body pose | VNDetectHumanBodyPoseRequest | 19 joint points |
+| Face landmarks | VNDetectFaceLandmarksRequest | 76 landmarks |
+| Hand pose | VNDetectHumanHandPoseRequest | 21 landmarks/hand |
+| Speech | SFSpeechRecognizer (on-device) | Real-time transcription |
+
+## Project structure
+
+```
+behave/
+├── legacy/          # Original Python code (2014)
+├── ios/             # SwiftUI iOS app
+│   ├── Behave/
+│   │   ├── Detection/       # Vision framework detectors
+│   │   ├── Classification/  # Behavior classifiers
+│   │   ├── Enforcement/     # Alert/rule engine
+│   │   ├── Views/           # SwiftUI views
+│   │   └── Data/            # Models, persistence
+│   └── project.yml          # xcodegen spec
+├── backend/         # FastAPI backend
+│   ├── app/
+│   │   ├── auth/            # Apple Sign-In + JWT
+│   │   ├── models/          # SQLAlchemy models
+│   │   ├── routers/         # API endpoints
+│   │   └── services/        # Claude proxy
+│   └── Dockerfile
+├── docker-compose.yml
+└── shelob.yml
+```
+
+## Development
+
+### iOS app
+```bash
+cd ios
+xcodegen generate
+open Behave.xcodeproj
+```
+
+### Backend (local)
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8300
+```
+
+### Deploy
+```
+shelob deploy_project behave
+```

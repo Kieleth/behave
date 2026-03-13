@@ -1,0 +1,11 @@
+services:
+  api:
+    build: ./backend
+    network_mode: host
+    environment:
+      - BEHAVE_DATABASE_URL=postgresql+asyncpg://behave:${BEHAVE_DB_PASSWORD}@localhost:5432/behave
+      - BEHAVE_JWT_SECRET=${JWT_SECRET}
+      - BEHAVE_CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - BEHAVE_APPLE_TEAM_ID=${APPLE_SIGN_IN_TEAM_ID}
+      - BEHAVE_APPLE_KEY_ID=${APPLE_SIGN_IN_KEY_ID}
+    restart: unless-stopped
