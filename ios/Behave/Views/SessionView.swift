@@ -1,9 +1,12 @@
 import SwiftUI
+import SwiftData
 import AVFoundation
+import Vision
 
 /// Main session screen: camera preview with detection overlays.
 struct SessionView: View {
     @StateObject private var orchestrator = SessionOrchestrator()
+    @Environment(\.modelContext) private var modelContext
     @State private var showCalibration = false
 
     var body: some View {
@@ -16,12 +19,28 @@ struct SessionView: View {
                     CameraPreviewView(session: orchestrator.camera.session)
                         .ignoresSafeArea()
 
-                    // Detection overlays
-                    DetectionOverlay(orchestrator: orchestrator)
+                    // Detection overlays (hidden during breaks)
+                    if !orchestrator.isPausedForBreak {
+                        DetectionOverlay(orchestrator: orchestrator)
+                    }
 
-                    // Status bar at top
+                    // Break overlay
+                    if orchestrator.isPausedForBreak,
+                       let suggestion = orchestrator.breakSuggestion {
+                        BreakView(
+                            suggestion: suggestion,
+                            pomodoro: orchestrator.pomodoro,
+                            onSkip: { orchestrator.pomodoro.skip() }
+                        )
+                    }
+
+                    // Status bar at top, controls at bottom
                     VStack {
-                        StatusBar(orchestrator: orchestrator)
+                        HStack {
+                            StatusBar(orchestrator: orchestrator)
+                            Spacer()
+                            PomodoroOverlay(pomodoro: orchestrator.pomodoro)
+                        }
                         Spacer()
                         ControlBar(orchestrator: orchestrator, showCalibration: $showCalibration)
                     }
@@ -51,6 +70,10 @@ struct SessionView: View {
             .navigationBarHidden(true)
             .sheet(isPresented: $showCalibration) {
                 CalibrationView(orchestrator: orchestrator)
+            }
+            .task {
+                orchestrator.modelContext = modelContext
+                orchestrator.loadSettings()
             }
         }
     }

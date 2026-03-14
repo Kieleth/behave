@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var consentManager = ConsentManager.shared
     @State private var selectedTab: Tab = .session
 
     enum Tab {
@@ -8,34 +9,34 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            SessionView()
-                .tabItem {
-                    Label("Session", systemImage: "figure.stand")
-                }
-                .tag(Tab.session)
+        if consentManager.hasConsented {
+            TabView(selection: $selectedTab) {
+                SessionView()
+                    .tabItem {
+                        Label("Session", systemImage: "figure.stand")
+                    }
+                    .tag(Tab.session)
 
-            DashboardView()
-                .tabItem {
-                    Label("Dashboard", systemImage: "chart.line.uptrend.xyaxis")
-                }
-                .tag(Tab.dashboard)
+                DashboardView()
+                    .tabItem {
+                        Label("Dashboard", systemImage: "chart.line.uptrend.xyaxis")
+                    }
+                    .tag(Tab.dashboard)
 
-            CoachingView()
-                .tabItem {
-                    Label("Coach", systemImage: "bubble.left.and.text.bubble.right")
-                }
-                .tag(Tab.coaching)
+                CoachingView()
+                    .tabItem {
+                        Label("Coach", systemImage: "brain.head.profile")
+                    }
+                    .tag(Tab.coaching)
 
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gear")
-                }
-                .tag(Tab.settings)
+                SettingsView()
+                    .tabItem {
+                        Label("Settings", systemImage: "gear")
+                    }
+                    .tag(Tab.settings)
+            }
+        } else {
+            OnboardingView(consentManager: consentManager)
         }
     }
-}
-
-#Preview {
-    ContentView()
 }

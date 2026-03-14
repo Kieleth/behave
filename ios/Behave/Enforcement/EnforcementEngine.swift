@@ -17,10 +17,48 @@ final class EnforcementEngine: ObservableObject {
     private var expressionEnforcer = BehaviorEnforcer(name: "expression", warningAfter: 10.0, alertAfter: 30.0)
     private var habitEnforcer = BehaviorEnforcer(name: "habit", warningAfter: 1.0, alertAfter: 3.0)
 
+    /// Callback fired on every alert — used by orchestrator to persist events.
+    var onAlert: ((BehaviorAlert) -> Void)?
+
+    /// Which feedback channels are active.
+    var audioAlertsEnabled = true
+    var hapticAlertsEnabled = true
+
+    /// Which behaviors to monitor. Nil = monitor all.
+    var monitoredBehaviors: Set<String>?
+
     private let synthesizer = AVSpeechSynthesizer()
     private let haptic = UIImpactFeedbackGenerator(style: .medium)
 
-    /// Process all classifier results each frame
+    /// Reconfigure thresholds from persisted settings.
+    func configure(from settings: LocalSettings) {
+        postureEnforcer = BehaviorEnforcer(
+            name: "posture",
+            warningAfter: settings.postureWarningSeconds,
+            alertAfter: settings.postureAlertSeconds
+        )
+        expressionEnforcer = BehaviorEnforcer(
+            name: "expression",
+            warningAfter: settings.expressionWarningSeconds,
+            alertAfter: settings.expressionWarningSeconds * 3  // alert = 3x warning
+        )
+        habitEnforcer = BehaviorEnforcer(
+            name: "habit",
+            warningAfter: settings.habitWarningSeconds,
+            alertAfter: settings.habitWarningSeconds * 3
+        )
+        audioAlertsEnabled = settings.audioAlertsEnabled
+        hapticAlertsEnabled = settings.hapticAlertsEnabled
+
+        // Parse monitored behaviors from JSON
+        if let data = settings.monitoredBehaviors.data(using: .utf8),
+           let behaviors = try? JSONDecoder().decode([String].self, from: data) {
+            monitoredBehaviors = Set(behaviors)
+        }
+    }
+
+    /// Process all classifier results each frame.
+    /// Skips behaviors not in `monitoredBehaviors` if set.
     func process(
         posture: PostureClassifier.Result?,
         expression: ExpressionClassifier.Result?,
@@ -28,16 +66,17 @@ final class EnforcementEngine: ObservableObject {
         speech: SpeechClassifier.Result?
     ) {
         let now = Date()
+        let monitored = monitoredBehaviors
 
         // Posture
-        if let p = posture {
+        if monitored == nil || monitored!.contains("posture"), let p = posture {
             let result = postureEnforcer.update(isGood: p.isGood, at: now)
             postureStatus = result.status
             if let alert = result.alert { fire(alert) }
         }
 
         // Expression
-        if let e = expression {
+        if monitored == nil || monitored!.contains("expression"), let e = expression {
             let isGood = e.tension < 0.5
             let result = expressionEnforcer.update(isGood: isGood, at: now)
             expressionStatus = result.status
@@ -45,7 +84,7 @@ final class EnforcementEngine: ObservableObject {
         }
 
         // Habits
-        if let h = habits {
+        if monitored == nil || monitored!.contains("habits"), let h = habits {
             let isGood = h.detectedHabits.isEmpty
             let result = habitEnforcer.update(isGood: isGood, at: now)
             habitStatus = result.status
@@ -53,7 +92,7 @@ final class EnforcementEngine: ObservableObject {
         }
 
         // Speech
-        if let s = speech {
+        if monitored == nil || monitored!.contains("speech"), let s = speech {
             speechStatus = s.fillerWordCount > 3 ? .warning : .ok
         }
 
@@ -70,12 +109,17 @@ final class EnforcementEngine: ObservableObject {
         }
 
         // Haptic feedback
-        haptic.impactOccurred()
+        if hapticAlertsEnabled {
+            haptic.impactOccurred()
+        }
 
         // Spoken alert for critical issues
-        if alert.severity == .alert {
+        if audioAlertsEnabled && alert.severity == .alert {
             speak(alert.message)
         }
+
+        // Notify orchestrator to persist the event
+        onAlert?(alert)
     }
 
     private func speak(_ text: String) {

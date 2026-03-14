@@ -1,4 +1,5 @@
 import Foundation
+import CoreMedia
 import Combine
 import SwiftData
 
@@ -25,6 +26,11 @@ final class SessionOrchestrator: ObservableObject {
     // Enforcer
     let enforcement = EnforcementEngine()
 
+    // Pomodoro
+    let pomodoro = PomodoroTimer()
+    @Published var breakSuggestion: BreakSuggestionEngine.Suggestion?
+    @Published var isPausedForBreak = false
+
     // Calibration
     @Published var calibration = PostureClassifier.Calibration()
     @Published var isCalibrated = false
@@ -34,7 +40,44 @@ final class SessionOrchestrator: ObservableObject {
     private var frameCount = 0
     private let processEveryNthFrame = 3  // skip frames for performance, like original `circular_counter`
 
+    // Persistence
+    var modelContext: ModelContext?
+    private var currentSession: LocalSession?
+
+    // Running score accumulators (averaged at session end)
+    private var postureScoreSum: Double = 0
+    private var expressionScoreSum: Double = 0
+    private var habitScoreSum: Double = 0
+    private var speechScoreSum: Double = 0
+    private var scoreSampleCount: Int = 0
+
     private var timer: Timer?
+
+    /// Configure from persisted settings. Call after setting modelContext.
+    func loadSettings() {
+        guard let ctx = modelContext else { return }
+        let descriptor = FetchDescriptor<LocalSettings>()
+        if let settings = try? ctx.fetch(descriptor).first {
+            enforcement.configure(from: settings)
+
+            // Configure pomodoro from settings
+            pomodoro.workDuration = settings.pomodoroWorkMinutes * 60
+            pomodoro.shortBreakDuration = settings.pomodoroShortBreakMinutes * 60
+            pomodoro.longBreakDuration = settings.pomodoroLongBreakMinutes * 60
+            pomodoro.longBreakInterval = settings.pomodoroLongBreakInterval
+
+            // Restore calibration if saved
+            if settings.isCalibrated {
+                calibration = PostureClassifier.Calibration(
+                    noseY: settings.calibrationNoseY,
+                    shoulderMidY: settings.calibrationShoulderMidY,
+                    headToShoulderRatio: settings.calibrationHeadToShoulderRatio,
+                    shoulderAngle: settings.calibrationShoulderAngle
+                )
+                isCalibrated = true
+            }
+        }
+    }
 
     func start() {
         guard !isActive else { return }
@@ -42,7 +85,32 @@ final class SessionOrchestrator: ObservableObject {
         sessionStart = Date()
         sessionDuration = 0
         frameCount = 0
+        postureScoreSum = 0
+        expressionScoreSum = 0
+        habitScoreSum = 0
+        speechScoreSum = 0
+        scoreSampleCount = 0
         enforcement.reset()
+
+        // Create persistent session
+        let session = LocalSession(startedAt: Date())
+        currentSession = session
+        if let ctx = modelContext {
+            ctx.insert(session)
+            try? ctx.save()
+        }
+
+        // Wire alert persistence
+        enforcement.onAlert = { [weak self] alert in
+            self?.persistAlert(alert)
+        }
+
+        // Wire pomodoro phase changes
+        pomodoro.onPhaseChange = { [weak self] phase in
+            Task { @MainActor in
+                self?.handlePhaseChange(phase)
+            }
+        }
 
         // Set up frame processing pipeline
         camera.onFrame = { [weak self] sampleBuffer in
@@ -50,6 +118,7 @@ final class SessionOrchestrator: ObservableObject {
         }
 
         camera.start()
+        pomodoro.startWork()
         isActive = true
 
         // Update duration timer
@@ -64,9 +133,49 @@ final class SessionOrchestrator: ObservableObject {
     func stop() {
         camera.stop()
         speechDetector.stop()
+        pomodoro.stop()
         timer?.invalidate()
         timer = nil
         isActive = false
+        isPausedForBreak = false
+        breakSuggestion = nil
+
+        // Finalize and save session
+        if let session = currentSession, scoreSampleCount > 0 {
+            let count = Double(scoreSampleCount)
+            session.end(scores: (
+                posture: postureScoreSum / count,
+                expression: expressionScoreSum / count,
+                habit: habitScoreSum / count,
+                speech: speechScoreSum / count
+            ))
+            try? modelContext?.save()
+        }
+        currentSession = nil
+        enforcement.onAlert = nil
+    }
+
+    /// Persist a behavioral alert as a LocalEvent attached to the current session.
+    private func persistAlert(_ alert: BehaviorAlert) {
+        guard let session = currentSession, let ctx = modelContext else { return }
+
+        let severityString: String
+        switch alert.severity {
+        case .warning: severityString = "medium"
+        case .alert: severityString = "high"
+        case .ok: severityString = "low"
+        }
+
+        let event = LocalEvent(
+            type: "\(alert.behavior)_violation",
+            severity: severityString,
+            details: "{\"message\":\"\(alert.message)\"}",
+            timestamp: alert.timestamp
+        )
+        event.session = session
+        session.events.append(event)
+        ctx.insert(event)
+        try? ctx.save()
     }
 
     /// Process a single video frame through the full pipeline.
@@ -113,6 +222,38 @@ final class SessionOrchestrator: ObservableObject {
             habits: habitResult,
             speech: speechResult
         )
+
+        // Accumulate scores for session average
+        postureScoreSum += enforcement.postureStatus.score
+        expressionScoreSum += enforcement.expressionStatus.score
+        habitScoreSum += enforcement.habitStatus.score
+        speechScoreSum += enforcement.speechStatus.score
+        scoreSampleCount += 1
+    }
+
+    // MARK: - Pomodoro integration
+
+    private func handlePhaseChange(_ phase: PomodoroTimer.Phase) {
+        switch phase {
+        case .shortBreak, .longBreak:
+            // Pause monitoring, generate break suggestion
+            isPausedForBreak = true
+            camera.stop()
+            speechDetector.stop()
+            breakSuggestion = BreakSuggestionEngine.suggest(
+                postureScore: enforcement.postureStatus.score,
+                expressionScore: enforcement.expressionStatus.score,
+                habitScore: enforcement.habitStatus.score,
+                speechScore: enforcement.speechStatus.score
+            )
+        case .work:
+            // Resume monitoring
+            isPausedForBreak = false
+            breakSuggestion = nil
+            camera.start()
+        case .idle:
+            break
+        }
     }
 
     // MARK: - Calibration (auto-adjust protocol)
@@ -131,6 +272,26 @@ final class SessionOrchestrator: ObservableObject {
         if calibrationSnapshots.count >= calibrationTarget {
             calibration = PostureClassifier.calibrate(from: calibrationSnapshots)
             isCalibrated = true
+            saveCalibration()
         }
+    }
+
+    /// Persist calibration to LocalSettings so it survives app restarts.
+    private func saveCalibration() {
+        guard let ctx = modelContext else { return }
+        let descriptor = FetchDescriptor<LocalSettings>()
+        let settings: LocalSettings
+        if let existing = try? ctx.fetch(descriptor).first {
+            settings = existing
+        } else {
+            settings = LocalSettings()
+            ctx.insert(settings)
+        }
+        settings.calibrationNoseY = calibration.noseY
+        settings.calibrationShoulderMidY = calibration.shoulderMidY
+        settings.calibrationHeadToShoulderRatio = calibration.headToShoulderRatio
+        settings.calibrationShoulderAngle = calibration.shoulderAngle
+        settings.isCalibrated = true
+        try? ctx.save()
     }
 }

@@ -5,6 +5,7 @@ import SwiftData
 struct SettingsView: View {
     @Query private var allSettings: [LocalSettings]
     @Environment(\.modelContext) private var modelContext
+    @State private var showPaywall = false
 
     private var settings: LocalSettings {
         if let existing = allSettings.first { return existing }
@@ -54,6 +55,53 @@ struct SettingsView: View {
                     )
                 }
 
+                Section("Pomodoro") {
+                    HStack {
+                        Text("Work interval")
+                        Spacer()
+                        Text("\(Int(settings.pomodoroWorkMinutes)) min")
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(
+                        value: .init(
+                            get: { settings.pomodoroWorkMinutes },
+                            set: { settings.pomodoroWorkMinutes = $0 }
+                        ),
+                        in: 15...60,
+                        step: 5
+                    )
+
+                    HStack {
+                        Text("Short break")
+                        Spacer()
+                        Text("\(Int(settings.pomodoroShortBreakMinutes)) min")
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(
+                        value: .init(
+                            get: { settings.pomodoroShortBreakMinutes },
+                            set: { settings.pomodoroShortBreakMinutes = $0 }
+                        ),
+                        in: 3...15,
+                        step: 1
+                    )
+
+                    HStack {
+                        Text("Long break")
+                        Spacer()
+                        Text("\(Int(settings.pomodoroLongBreakMinutes)) min")
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(
+                        value: .init(
+                            get: { settings.pomodoroLongBreakMinutes },
+                            set: { settings.pomodoroLongBreakMinutes = $0 }
+                        ),
+                        in: 10...30,
+                        step: 5
+                    )
+                }
+
                 Section("Calibration") {
                     HStack {
                         Text("Status")
@@ -63,10 +111,23 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("Account") {
-                    Text("Sign in with Apple")
-                        .foregroundStyle(.secondary)
-                    // TODO: Apple Sign-In (Step 6)
+                Section("Privacy") {
+                    NavigationLink {
+                        PrivacyDashboardView()
+                    } label: {
+                        Label("Privacy dashboard", systemImage: "lock.shield")
+                    }
+
+                    if SubscriptionManager.shared.isPro {
+                        Label("Behave Pro", systemImage: "star.fill")
+                            .foregroundStyle(.yellow)
+                    } else {
+                        Button {
+                            showPaywall = true
+                        } label: {
+                            Label("Upgrade to Pro", systemImage: "star")
+                        }
+                    }
                 }
 
                 Section("About") {
@@ -79,6 +140,9 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+            }
         }
     }
 

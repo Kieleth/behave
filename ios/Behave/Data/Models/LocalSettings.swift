@@ -25,6 +25,12 @@ final class LocalSettings {
     var speechMonitoringEnabled: Bool
     var monitoredBehaviors: String   // JSON array: ["posture","expression","habits","speech"]
 
+    // Pomodoro
+    var pomodoroWorkMinutes: Double
+    var pomodoroShortBreakMinutes: Double
+    var pomodoroLongBreakMinutes: Double
+    var pomodoroLongBreakInterval: Int
+
     init() {
         self.id = UUID()
         self.calibrationNoseY = 0
@@ -40,5 +46,9 @@ final class LocalSettings {
         self.hapticAlertsEnabled = true
         self.speechMonitoringEnabled = false
         self.monitoredBehaviors = "[\"posture\",\"expression\",\"habits\"]"
+        self.pomodoroWorkMinutes = 25
+        self.pomodoroShortBreakMinutes = 5
+        self.pomodoroLongBreakMinutes = 15
+        self.pomodoroLongBreakInterval = 4
     }
 }
