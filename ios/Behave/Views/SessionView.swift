@@ -15,11 +15,12 @@ struct SessionView: View {
             CameraPreviewView(previewLayer: orchestrator.camera.previewLayer)
                 .ignoresSafeArea()
 
-            if orchestrator.isActive && !showCalibration {
-                // Detection overlays (hidden during breaks and calibration)
-                if !orchestrator.isPausedForBreak {
-                    DetectionOverlay(orchestrator: orchestrator)
-                }
+                    if orchestrator.isActive && !showCalibration {
+                        // Detection overlays (hidden during breaks and calibration)
+                        if !orchestrator.isPausedForBreak {
+                            DetectionOverlay(orchestrator: orchestrator)
+                            PostureFeedbackOverlay(orchestrator: orchestrator)
+                        }
 
                 // Break overlay
                 if orchestrator.isPausedForBreak,
@@ -142,7 +143,7 @@ struct DebugOverlay: View {
 
             if let face = orchestrator.faceDetector.faceLandmarks {
                 let b = face.boundingBox
-                Text("Face: (\(f(b.midX)),\(f(b.midY))) \(f(b.width))x\(f(b.height))")
+                Text("Face: \(f(b.width))x\(f(b.height))")
                     .foregroundStyle(.green)
             } else {
                 Text("Face: ---").foregroundStyle(.red)
@@ -155,6 +156,22 @@ struct DebugOverlay: View {
             }
 
             Text("Hands: \(orchestrator.handDetector.hands.count)")
+
+            // Posture debug
+            if let p = orchestrator.lastPostureResult {
+                let color: Color = p.isGood ? .green : .red
+                Text("Posture: \(p.details)").foregroundStyle(color)
+                Text("  tilt:\(f2(p.shoulderTilt)) drop:\(f2(p.headDropRatio)) shrug:\(f2(p.shoulderShrug))")
+                Text("  src: \(String(describing: p.source))")
+            }
+
+            Text("Cal: \(orchestrator.isCalibrated ? "YES" : "NO")")
+
+            // Habit debug
+            if !orchestrator.lastHabitDetails.isEmpty {
+                Text("Habits: \(orchestrator.lastHabitDetails)")
+                    .foregroundStyle(orchestrator.lastHabitDetails == "No habits detected" ? .white : .orange)
+            }
         }
         .font(.caption2.monospaced())
         .foregroundStyle(.white)
@@ -163,6 +180,35 @@ struct DebugOverlay: View {
     }
 
     private func f(_ v: CGFloat) -> String { String(format: "%.2f", v) }
+    private func f2(_ v: Double) -> String { String(format: "%.2f", v) }
+}
+
+// MARK: - Posture Visual Feedback
+
+struct PostureFeedbackOverlay: View {
+    @ObservedObject var orchestrator: SessionOrchestrator
+
+    var body: some View {
+        VStack {
+            Spacer()
+
+            if let p = orchestrator.lastPostureResult, !p.isGood {
+                HStack(spacing: 8) {
+                    Image(systemName: "figure.stand")
+                        .font(.title3)
+                    Text(p.details.capitalized)
+                        .font(.subheadline.bold())
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(.red.opacity(0.85), in: Capsule())
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .padding(.bottom, 100)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: orchestrator.lastPostureResult?.isGood)
+    }
 }
 
 // MARK: - Detection Overlay

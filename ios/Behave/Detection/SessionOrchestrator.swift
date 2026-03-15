@@ -35,6 +35,10 @@ final class SessionOrchestrator: ObservableObject {
     @Published var calibration = PostureClassifier.Calibration()
     @Published var isCalibrated = false
 
+    // Last classification results (for debug/visual feedback)
+    @Published var lastPostureResult: PostureClassifier.Result?
+    @Published var lastHabitDetails: String = ""
+
     // Session tracking
     private var sessionStart: Date?
     private var frameCount = 0
@@ -239,10 +243,14 @@ final class SessionOrchestrator: ObservableObject {
             expressionClassifier.classify(faceLandmarks: $0)
         }
 
+        // Store for debug overlay
+        lastPostureResult = postureResult
+
         let habitResult = habitClassifier.classify(
             hands: handDetector.hands,
             face: faceDetector.faceLandmarks
         )
+        lastHabitDetails = habitResult.details
 
         let speechResult = speechClassifier.classify(
             words: speechDetector.recentWords,
