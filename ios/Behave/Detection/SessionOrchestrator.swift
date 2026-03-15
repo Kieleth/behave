@@ -38,6 +38,7 @@ final class SessionOrchestrator: ObservableObject {
     // Session tracking
     private var sessionStart: Date?
     private var frameCount = 0
+    @Published var processedFrameCount = 0  // visible to debug overlay
     private let processEveryNthFrame = 3  // skip frames for performance, like original `circular_counter`
 
     // Persistence
@@ -96,6 +97,9 @@ final class SessionOrchestrator: ObservableObject {
         poseDetector.detect(in: sampleBuffer, orientation: orientation)
         faceDetector.detect(in: sampleBuffer, orientation: orientation)
         handDetector.detect(in: sampleBuffer, orientation: orientation)
+        DispatchQueue.main.async { [weak self] in
+            self?.processedFrameCount += 1
+        }
     }
 
     func start() {

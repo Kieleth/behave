@@ -8,7 +8,6 @@ struct SessionView: View {
     @StateObject private var orchestrator = SessionOrchestrator()
     @Environment(\.modelContext) private var modelContext
     @State private var showCalibration = false
-    @State private var showDebug = false
 
     var body: some View {
         NavigationStack {
@@ -16,7 +15,7 @@ struct SessionView: View {
                 Color.black.ignoresSafeArea()
 
                 if orchestrator.camera.permissionGranted {
-                    // Camera preview (always visible for feedback)
+                    // Camera preview — always visible
                     CameraPreviewView(session: orchestrator.camera.session)
                         .ignoresSafeArea()
 
@@ -35,58 +34,49 @@ struct SessionView: View {
                                 onSkip: { orchestrator.pomodoro.skip() }
                             )
                         }
-                    } else {
-                        // Idle state — prompt to start
-                        VStack(spacing: 16) {
-                            Spacer()
-                            Image(systemName: "figure.stand")
-                                .font(.system(size: 48))
-                                .foregroundStyle(.white.opacity(0.7))
-                            Text("Place your phone next to your laptop")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                            Text("Tap the button below to start monitoring")
-                                .font(.subheadline)
-                                .foregroundStyle(.white.opacity(0.6))
-                            Spacer()
-                        }
                     }
 
-                    // Status bar at top, controls at bottom
-                    VStack {
+                    // HUD: status + debug + controls
+                    VStack(spacing: 0) {
+                        // Status bar (only when active)
                         if orchestrator.isActive {
                             HStack {
                                 StatusBar(orchestrator: orchestrator)
                                 Spacer()
                                 PomodoroOverlay(pomodoro: orchestrator.pomodoro)
                             }
+                            .padding(.horizontal)
+                            .padding(.top, 8)
                         }
 
-                        // Debug overlay (top-left, below status bar)
-                        if showDebug {
-                            HStack {
-                                DebugOverlay(orchestrator: orchestrator)
-                                Spacer()
-                            }
+                        // Debug — always visible, top-left
+                        HStack {
+                            DebugOverlay(orchestrator: orchestrator)
+                            Spacer()
                         }
+                        .padding(.horizontal, 8)
+                        .padding(.top, 8)
 
                         Spacer()
 
-                        HStack {
-                            ControlBar(orchestrator: orchestrator, showCalibration: $showCalibration)
+                        // Idle state prompt
+                        if !orchestrator.isActive {
+                            VStack(spacing: 8) {
+                                Text("Place phone next to laptop")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                Text("Tap play to start monitoring")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.white.opacity(0.6))
+                            }
+                            Spacer()
                         }
 
-                        // Debug toggle
-                        Button {
-                            showDebug.toggle()
-                        } label: {
-                            Text(showDebug ? "Hide debug" : "Debug")
-                                .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.4))
-                        }
-                        .padding(.top, 4)
+                        // Controls
+                        ControlBar(orchestrator: orchestrator, showCalibration: $showCalibration)
+                            .padding(.horizontal)
+                            .padding(.bottom, 8)
                     }
-                    .padding()
                 } else {
                     VStack(spacing: 16) {
                         Image(systemName: "camera.fill")
@@ -116,11 +106,9 @@ struct SessionView: View {
             .task {
                 orchestrator.modelContext = modelContext
                 orchestrator.loadSettings()
-                // Start camera + detectors for preview (no session yet)
                 orchestrator.startPreview()
             }
             .onChange(of: orchestrator.isActive) { _, active in
-                // Keep screen on during active sessions
                 UIApplication.shared.isIdleTimerDisabled = active
             }
             .onDisappear {
@@ -130,87 +118,69 @@ struct SessionView: View {
     }
 }
 
-// MARK: - Debug Overlay
+// MARK: - Debug Overlay (always visible)
 
 struct DebugOverlay: View {
     @ObservedObject var orchestrator: SessionOrchestrator
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("DEBUG")
-                .font(.caption.bold().monospaced())
-                .foregroundStyle(.yellow)
+        VStack(alignment: .leading, spacing: 3) {
+            Text("DEBUG").font(.caption2.bold()).foregroundStyle(.yellow)
 
-            Group {
-                if let body = orchestrator.poseDetector.bodyLandmarks {
-                    let pts = body.allPoints.count
-                    Text("Pose: \(pts) joints")
-                    if let nose = body.nose {
-                        Text("  nose: (\(f(nose.x)), \(f(nose.y)))")
-                    }
-                    if let ls = body.leftShoulder, let rs = body.rightShoulder {
-                        Text("  shoulders: L(\(f(ls.x)),\(f(ls.y))) R(\(f(rs.x)),\(f(rs.y)))")
-                    }
-                } else {
-                    Text("Pose: none")
-                }
+            Text("Cam: \(orchestrator.camera.isRunning ? "ON" : "OFF")  Frames: \(orchestrator.processedFrameCount)")
 
-                if let face = orchestrator.faceDetector.faceLandmarks {
-                    let b = face.boundingBox
-                    Text("Face: (\(f(b.minX)),\(f(b.minY))) \(f(b.width))x\(f(b.height))")
-                } else {
-                    Text("Face: none")
-                }
-
-                Text("Hands: \(orchestrator.handDetector.hands.count)")
-
-                Text("Calibrated: \(orchestrator.isCalibrated ? "YES" : "NO")")
-
-                let e = orchestrator.enforcement
-                Text("Score: P:\(f(e.postureStatus.score)) E:\(f(e.expressionStatus.score)) H:\(f(e.habitStatus.score))")
+            if let face = orchestrator.faceDetector.faceLandmarks {
+                let b = face.boundingBox
+                Text("Face: (\(f(b.minX)),\(f(b.minY))) \(f(b.width))x\(f(b.height))")
+                    .foregroundStyle(.green)
+            } else {
+                Text("Face: ---").foregroundStyle(.red)
             }
-            .font(.caption2.monospaced())
-            .foregroundStyle(.green)
+
+            if let body = orchestrator.poseDetector.bodyLandmarks {
+                Text("Body: \(body.allPoints.count) joints").foregroundStyle(.green)
+            } else {
+                Text("Body: ---").foregroundStyle(.red)
+            }
+
+            Text("Hands: \(orchestrator.handDetector.hands.count)")
+            Text("Cal: \(orchestrator.isCalibrated ? "YES" : "NO")")
         }
-        .padding(8)
-        .background(.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 8))
+        .font(.caption2.monospaced())
+        .foregroundStyle(.white)
+        .padding(6)
+        .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 6))
     }
 
-    private func f(_ v: Double) -> String { String(format: "%.2f", v) }
     private func f(_ v: CGFloat) -> String { String(format: "%.2f", v) }
 }
 
-// MARK: - Camera Preview (UIKit bridge)
+// MARK: - Camera Preview (Apple recommended: layerClass override)
 
 struct CameraPreviewView: UIViewRepresentable {
     let session: AVCaptureSession
 
-    func makeUIView(context: Context) -> PreviewUIView {
-        let view = PreviewUIView()
+    func makeUIView(context: Context) -> VideoPreviewView {
+        let view = VideoPreviewView()
         view.previewLayer.session = session
         view.previewLayer.videoGravity = .resizeAspectFill
+        view.backgroundColor = .black
         return view
     }
 
-    func updateUIView(_ uiView: PreviewUIView, context: Context) {
-        // Session may change — update it
+    func updateUIView(_ uiView: VideoPreviewView, context: Context) {
         uiView.previewLayer.session = session
     }
 
-    /// Custom UIView that keeps the preview layer sized to bounds via layoutSubviews.
-    class PreviewUIView: UIView {
-        let previewLayer = AVCaptureVideoPreviewLayer()
-
-        override init(frame: CGRect) {
-            super.init(frame: frame)
-            layer.addSublayer(previewLayer)
+    /// UIView whose backing layer IS the preview layer.
+    /// This guarantees the preview always fills the view — no manual frame management.
+    class VideoPreviewView: UIView {
+        override class var layerClass: AnyClass {
+            AVCaptureVideoPreviewLayer.self
         }
 
-        required init?(coder: NSCoder) { fatalError() }
-
-        override func layoutSubviews() {
-            super.layoutSubviews()
-            previewLayer.frame = bounds
+        var previewLayer: AVCaptureVideoPreviewLayer {
+            layer as! AVCaptureVideoPreviewLayer
         }
     }
 }
@@ -238,7 +208,7 @@ struct DetectionOverlay: View {
                     .position(x: rect.midX, y: rect.midY)
             }
 
-            // Hand points near face (habit warning)
+            // Hand points
             ForEach(Array(orchestrator.handDetector.hands.enumerated()), id: \.offset) { _, hand in
                 ForEach(Array(hand.fingertips.enumerated()), id: \.offset) { _, tip in
                     let point = LandmarkMath.scale(tip, to: size)
@@ -279,13 +249,11 @@ struct SkeletonView: View {
         Canvas { context, _ in
             let points = landmarks.allPoints.mapValues { LandmarkMath.scale($0, to: size) }
 
-            // Draw joints
             for (_, point) in points {
                 let rect = CGRect(x: point.x - 4, y: point.y - 4, width: 8, height: 8)
                 context.fill(Path(ellipseIn: rect), with: .color(color))
             }
 
-            // Draw bone connections
             let connections: [(VNHumanBodyPoseObservation.JointName, VNHumanBodyPoseObservation.JointName)] = [
                 (.nose, .neck),
                 (.neck, .leftShoulder), (.neck, .rightShoulder),
@@ -356,7 +324,6 @@ struct ControlBar: View {
 
     var body: some View {
         HStack(spacing: 24) {
-            // Calibrate button
             Button {
                 showCalibration = true
             } label: {
@@ -372,7 +339,6 @@ struct ControlBar: View {
 
             Spacer()
 
-            // Duration
             if orchestrator.isActive {
                 Text(formatDuration(orchestrator.sessionDuration))
                     .font(.system(.title3, design: .monospaced))
@@ -381,7 +347,6 @@ struct ControlBar: View {
 
             Spacer()
 
-            // Start/Stop button
             Button {
                 if orchestrator.isActive {
                     orchestrator.stop()
