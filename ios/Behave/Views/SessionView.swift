@@ -15,31 +15,50 @@ struct SessionView: View {
                 Color.black.ignoresSafeArea()
 
                 if orchestrator.camera.permissionGranted {
-                    // Camera preview
+                    // Camera preview (always visible for feedback)
                     CameraPreviewView(session: orchestrator.camera.session)
                         .ignoresSafeArea()
 
-                    // Detection overlays (hidden during breaks)
-                    if !orchestrator.isPausedForBreak {
-                        DetectionOverlay(orchestrator: orchestrator)
-                    }
+                    if orchestrator.isActive {
+                        // Detection overlays (hidden during breaks)
+                        if !orchestrator.isPausedForBreak {
+                            DetectionOverlay(orchestrator: orchestrator)
+                        }
 
-                    // Break overlay
-                    if orchestrator.isPausedForBreak,
-                       let suggestion = orchestrator.breakSuggestion {
-                        BreakView(
-                            suggestion: suggestion,
-                            pomodoro: orchestrator.pomodoro,
-                            onSkip: { orchestrator.pomodoro.skip() }
-                        )
+                        // Break overlay
+                        if orchestrator.isPausedForBreak,
+                           let suggestion = orchestrator.breakSuggestion {
+                            BreakView(
+                                suggestion: suggestion,
+                                pomodoro: orchestrator.pomodoro,
+                                onSkip: { orchestrator.pomodoro.skip() }
+                            )
+                        }
+                    } else {
+                        // Idle state — prompt to start
+                        VStack(spacing: 16) {
+                            Spacer()
+                            Image(systemName: "figure.stand")
+                                .font(.system(size: 48))
+                                .foregroundStyle(.white.opacity(0.7))
+                            Text("Place your phone next to your laptop")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            Text("Tap the button below to start monitoring")
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.6))
+                            Spacer()
+                        }
                     }
 
                     // Status bar at top, controls at bottom
                     VStack {
-                        HStack {
-                            StatusBar(orchestrator: orchestrator)
-                            Spacer()
-                            PomodoroOverlay(pomodoro: orchestrator.pomodoro)
+                        if orchestrator.isActive {
+                            HStack {
+                                StatusBar(orchestrator: orchestrator)
+                                Spacer()
+                                PomodoroOverlay(pomodoro: orchestrator.pomodoro)
+                            }
                         }
                         Spacer()
                         ControlBar(orchestrator: orchestrator, showCalibration: $showCalibration)
@@ -74,6 +93,8 @@ struct SessionView: View {
             .task {
                 orchestrator.modelContext = modelContext
                 orchestrator.loadSettings()
+                // Start camera preview immediately for visual feedback
+                orchestrator.camera.start()
             }
         }
     }
@@ -84,23 +105,33 @@ struct SessionView: View {
 struct CameraPreviewView: UIViewRepresentable {
     let session: AVCaptureSession
 
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView(frame: .zero)
-        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        previewLayer.videoGravity = .resizeAspectFill
-        view.layer.addSublayer(previewLayer)
-        context.coordinator.previewLayer = previewLayer
+    func makeUIView(context: Context) -> PreviewUIView {
+        let view = PreviewUIView()
+        view.previewLayer.session = session
+        view.previewLayer.videoGravity = .resizeAspectFill
         return view
     }
 
-    func updateUIView(_ uiView: UIView, context: Context) {
-        context.coordinator.previewLayer?.frame = uiView.bounds
+    func updateUIView(_ uiView: PreviewUIView, context: Context) {
+        // Session may change — update it
+        uiView.previewLayer.session = session
     }
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    /// Custom UIView that keeps the preview layer sized to bounds via layoutSubviews.
+    class PreviewUIView: UIView {
+        let previewLayer = AVCaptureVideoPreviewLayer()
 
-    class Coordinator {
-        var previewLayer: AVCaptureVideoPreviewLayer?
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            layer.addSublayer(previewLayer)
+        }
+
+        required init?(coder: NSCoder) { fatalError() }
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            previewLayer.frame = bounds
+        }
     }
 }
 

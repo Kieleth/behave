@@ -37,4 +37,4 @@ tasks:
         CURRENT=$(grep CURRENT_PROJECT_VERSION project.yml | awk '{print $2}')
         NEXT=$((CURRENT + 1))
         sed -i '' "s/CURRENT_PROJECT_VERSION: $CURRENT/CURRENT_PROJECT_VERSION: $NEXT/" project.yml
-        echo "Build number: $CURRENT → $NEXT"
+        echo "Build number: $CURRENT -> $NEXT"
