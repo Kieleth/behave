@@ -72,14 +72,13 @@ struct FaceLandmarks {
 
         let landmarks = observation.landmarks
 
-        // Manual conversion: place points within the transformed bounding box.
-        // normalizedPoints are 0-1 relative to the raw bounding box.
-        // We map them into the already-flipped box so they match the preview.
+        // normalizedPoints are 0-1 relative to the raw Vision bounding box.
+        // Flip X within the box to match the mirrored preview.
         func convert(_ region: VNFaceLandmarkRegion2D?) -> [CGPoint]? {
             guard let region = region else { return nil }
             return region.normalizedPoints.map { p in
                 CGPoint(
-                    x: tbx + p.x * box.width,
+                    x: tbx + (1 - p.x) * box.width,  // flip X within box for mirror
                     y: box.origin.y + p.y * box.height
                 )
             }

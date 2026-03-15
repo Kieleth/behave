@@ -16,6 +16,10 @@ final class CameraManager: NSObject, ObservableObject {
     /// The orientation to pass to VNImageRequestHandler.
     private(set) var visionOrientation: CGImagePropertyOrientation = .right
 
+    /// Image aspect ratio after orientation (portrait = height/width < 1).
+    /// Used to correct for resizeAspectFill cropping in overlays.
+    private(set) var imageAspectRatio: CGFloat = 0.75  // default, updated in setup
+
     private let videoOutput = AVCaptureVideoDataOutput()
     private let processingQueue = DispatchQueue(label: "com.kieleth.behave.camera", qos: .userInteractive)
 
@@ -71,6 +75,13 @@ final class CameraManager: NSObject, ObservableObject {
         if let connection = videoOutput.connection(with: .video) {
             connection.isVideoMirrored = true
             visionOrientation = .right
+        }
+
+        // Compute image aspect ratio after orientation
+        if let camera = session.inputs.first as? AVCaptureDeviceInput {
+            let dims = CMVideoFormatDescriptionGetDimensions(camera.device.activeFormat.formatDescription)
+            // After .right rotation: portrait = (height, width)
+            imageAspectRatio = CGFloat(dims.height) / CGFloat(dims.width)
         }
 
         // Configure preview layer BEFORE session starts

@@ -242,9 +242,10 @@ struct FaceTrackingOverlay: View {
     var body: some View {
         GeometryReader { geo in
             let size = geo.size
+            let imgAspect = orchestrator.camera.imageAspectRatio
 
             if let face = orchestrator.faceDetector.faceLandmarks {
-                let rect = LandmarkMath.scale(face.boundingBox, to: size)
+                let rect = LandmarkMath.visionToScreen(face.boundingBox, screenSize: size, imageAspect: imgAspect)
 
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(.green, lineWidth: 2)
@@ -252,22 +253,22 @@ struct FaceTrackingOverlay: View {
                     .position(x: rect.midX, y: rect.midY)
 
                 if let leftEye = face.leftEye {
-                    FaceLandmarkDots(points: leftEye, size: size, color: .cyan)
+                    FaceLandmarkDots(points: leftEye, size: size, imageAspect: imgAspect, color: .cyan)
                 }
                 if let rightEye = face.rightEye {
-                    FaceLandmarkDots(points: rightEye, size: size, color: .cyan)
+                    FaceLandmarkDots(points: rightEye, size: size, imageAspect: imgAspect, color: .cyan)
                 }
                 if let outerLips = face.outerLips {
-                    FaceLandmarkDots(points: outerLips, size: size, color: .pink)
+                    FaceLandmarkDots(points: outerLips, size: size, imageAspect: imgAspect, color: .pink)
                 }
                 if let nose = face.nose {
-                    FaceLandmarkDots(points: nose, size: size, color: .yellow)
+                    FaceLandmarkDots(points: nose, size: size, imageAspect: imgAspect, color: .yellow)
                 }
                 if let leftBrow = face.leftEyebrow {
-                    FaceLandmarkDots(points: leftBrow, size: size, color: .green.opacity(0.6))
+                    FaceLandmarkDots(points: leftBrow, size: size, imageAspect: imgAspect, color: .green.opacity(0.6))
                 }
                 if let rightBrow = face.rightEyebrow {
-                    FaceLandmarkDots(points: rightBrow, size: size, color: .green.opacity(0.6))
+                    FaceLandmarkDots(points: rightBrow, size: size, imageAspect: imgAspect, color: .green.opacity(0.6))
                 }
             }
         }
@@ -277,13 +278,14 @@ struct FaceTrackingOverlay: View {
 struct FaceLandmarkDots: View {
     let points: [CGPoint]
     let size: CGSize
+    let imageAspect: CGFloat
     let color: Color
 
     var body: some View {
         Canvas { context, _ in
             for point in points {
-                let scaled = LandmarkMath.scale(point, to: size)
-                let rect = CGRect(x: scaled.x - 2, y: scaled.y - 2, width: 4, height: 4)
+                let scaled = LandmarkMath.visionToScreen(point, screenSize: size, imageAspect: imageAspect)
+                let rect = CGRect(x: scaled.x - 3, y: scaled.y - 3, width: 6, height: 6)
                 context.fill(Path(ellipseIn: rect), with: .color(color))
             }
         }

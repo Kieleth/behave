@@ -173,13 +173,14 @@ struct DetectionOverlay: View {
     var body: some View {
         GeometryReader { geo in
             let size = geo.size
+            let imgAspect = orchestrator.camera.imageAspectRatio
 
             if let body = orchestrator.poseDetector.bodyLandmarks {
-                SkeletonView(landmarks: body, size: size, status: orchestrator.enforcement.postureStatus)
+                SkeletonView(landmarks: body, size: size, imageAspect: imgAspect, status: orchestrator.enforcement.postureStatus)
             }
 
             if let face = orchestrator.faceDetector.faceLandmarks {
-                let rect = LandmarkMath.scale(face.boundingBox, to: size)
+                let rect = LandmarkMath.visionToScreen(face.boundingBox, screenSize: size, imageAspect: imgAspect)
                 let color = statusColor(orchestrator.enforcement.expressionStatus)
 
                 RoundedRectangle(cornerRadius: 8)
@@ -188,22 +189,22 @@ struct DetectionOverlay: View {
                     .position(x: rect.midX, y: rect.midY)
 
                 if let leftEye = face.leftEye {
-                    FaceLandmarkDots(points: leftEye, size: size, color: .cyan)
+                    FaceLandmarkDots(points: leftEye, size: size, imageAspect: imgAspect, color: .cyan)
                 }
                 if let rightEye = face.rightEye {
-                    FaceLandmarkDots(points: rightEye, size: size, color: .cyan)
+                    FaceLandmarkDots(points: rightEye, size: size, imageAspect: imgAspect, color: .cyan)
                 }
                 if let outerLips = face.outerLips {
-                    FaceLandmarkDots(points: outerLips, size: size, color: .pink)
+                    FaceLandmarkDots(points: outerLips, size: size, imageAspect: imgAspect, color: .pink)
                 }
                 if let nose = face.nose {
-                    FaceLandmarkDots(points: nose, size: size, color: .yellow)
+                    FaceLandmarkDots(points: nose, size: size, imageAspect: imgAspect, color: .yellow)
                 }
             }
 
             ForEach(Array(orchestrator.handDetector.hands.enumerated()), id: \.offset) { _, hand in
                 ForEach(Array(hand.fingertips.enumerated()), id: \.offset) { _, tip in
-                    let point = LandmarkMath.scale(tip, to: size)
+                    let point = LandmarkMath.visionToScreen(tip, screenSize: size, imageAspect: imgAspect)
                     Circle()
                         .fill(statusColor(orchestrator.enforcement.habitStatus))
                         .frame(width: 8, height: 8)
@@ -227,6 +228,7 @@ struct DetectionOverlay: View {
 struct SkeletonView: View {
     let landmarks: BodyLandmarks
     let size: CGSize
+    let imageAspect: CGFloat
     let status: BehaviorStatus
 
     private var color: Color {
@@ -239,7 +241,7 @@ struct SkeletonView: View {
 
     var body: some View {
         Canvas { context, _ in
-            let points = landmarks.allPoints.mapValues { LandmarkMath.scale($0, to: size) }
+            let points = landmarks.allPoints.mapValues { LandmarkMath.visionToScreen($0, screenSize: size, imageAspect: imageAspect) }
 
             for (_, point) in points {
                 let rect = CGRect(x: point.x - 4, y: point.y - 4, width: 8, height: 8)
