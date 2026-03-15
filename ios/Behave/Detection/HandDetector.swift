@@ -43,7 +43,8 @@ struct HandLandmarks {
         func point(for joint: VNHumanHandPoseObservation.JointName) -> CGPoint? {
             guard let p = try? observation.recognizedPoint(joint),
                   p.confidence > 0.3 else { return nil }
-            return CGPoint(x: p.location.x, y: 1 - p.location.y)
+            // Flip X for front-camera mirror, Y is already top-down with .right orientation
+            return CGPoint(x: 1 - p.location.x, y: p.location.y)
         }
 
         self.wrist = point(for: .wrist)

@@ -284,7 +284,7 @@ struct CalibrationView: View {
 
 // MARK: - Face Tracking Overlay
 
-/// Draws a rounded rectangle that follows the detected face in real-time.
+/// Draws face tracking: bounding box + eyes + mouth landmarks.
 /// Proves to the user that face detection is working.
 struct FaceTrackingOverlay: View {
     @ObservedObject var orchestrator: SessionOrchestrator
@@ -298,45 +298,53 @@ struct FaceTrackingOverlay: View {
 
                 // Face bounding box
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(.green, lineWidth: 3)
-                    .frame(width: rect.width * 1.2, height: rect.height * 1.2)
+                    .stroke(.green, lineWidth: 2)
+                    .frame(width: rect.width * 1.3, height: rect.height * 1.3)
                     .position(x: rect.midX, y: rect.midY)
-                    .animation(.easeOut(duration: 0.1), value: rect.midX)
-                    .animation(.easeOut(duration: 0.1), value: rect.midY)
 
-                // Corner brackets for a "scan" feel
-                ForEach(corners(of: rect), id: \.0) { corner in
-                    CornerBracket(position: corner.1, angle: corner.2)
+                // Eyes
+                if let leftEye = face.leftEye {
+                    FaceLandmarkDots(points: leftEye, size: size, color: .cyan)
+                }
+                if let rightEye = face.rightEye {
+                    FaceLandmarkDots(points: rightEye, size: size, color: .cyan)
+                }
+
+                // Mouth
+                if let outerLips = face.outerLips {
+                    FaceLandmarkDots(points: outerLips, size: size, color: .pink)
+                }
+
+                // Nose
+                if let nose = face.nose {
+                    FaceLandmarkDots(points: nose, size: size, color: .yellow)
+                }
+
+                // Eyebrows
+                if let leftBrow = face.leftEyebrow {
+                    FaceLandmarkDots(points: leftBrow, size: size, color: .green.opacity(0.6))
+                }
+                if let rightBrow = face.rightEyebrow {
+                    FaceLandmarkDots(points: rightBrow, size: size, color: .green.opacity(0.6))
                 }
             }
         }
     }
-
-    private func corners(of rect: CGRect) -> [(Int, CGPoint, Double)] {
-        let inset: CGFloat = rect.width * 0.1
-        return [
-            (0, CGPoint(x: rect.minX - inset, y: rect.minY - inset), 0),
-            (1, CGPoint(x: rect.maxX + inset, y: rect.minY - inset), 90),
-            (2, CGPoint(x: rect.maxX + inset, y: rect.maxY + inset), 180),
-            (3, CGPoint(x: rect.minX - inset, y: rect.maxY + inset), 270),
-        ]
-    }
 }
 
-struct CornerBracket: View {
-    let position: CGPoint
-    let angle: Double
-    private let length: CGFloat = 20
+/// Draws dots for a set of face landmark points.
+struct FaceLandmarkDots: View {
+    let points: [CGPoint]
+    let size: CGSize
+    let color: Color
 
     var body: some View {
         Canvas { context, _ in
-            var path = Path()
-            path.move(to: CGPoint(x: 0, y: length))
-            path.addLine(to: .zero)
-            path.addLine(to: CGPoint(x: length, y: 0))
-            context.translateBy(x: position.x, y: position.y)
-            context.rotate(by: .degrees(angle))
-            context.stroke(path, with: .color(.green), lineWidth: 3)
+            for point in points {
+                let scaled = LandmarkMath.scale(point, to: size)
+                let rect = CGRect(x: scaled.x - 2, y: scaled.y - 2, width: 4, height: 4)
+                context.fill(Path(ellipseIn: rect), with: .color(color))
+            }
         }
     }
 }

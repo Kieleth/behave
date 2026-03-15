@@ -48,11 +48,11 @@ struct FaceLandmarks {
     }
 
     init(from observation: VNFaceObservation) {
-        // Bounding box: convert from bottom-left origin to top-left
+        // Bounding box: flip X for front-camera mirror, Y is already top-down with .right orientation
         let box = observation.boundingBox
         self.boundingBox = CGRect(
-            x: box.origin.x,
-            y: 1 - box.origin.y - box.height,
+            x: 1 - box.origin.x - box.width,
+            y: box.origin.y,
             width: box.width,
             height: box.height
         )
@@ -63,9 +63,10 @@ struct FaceLandmarks {
             guard let region = region else { return nil }
             return region.normalizedPoints.map { p in
                 // Points are relative to bounding box, convert to image coordinates
+                // Flip X for front-camera mirror
                 CGPoint(
-                    x: box.origin.x + p.x * box.width,
-                    y: 1 - (box.origin.y + p.y * box.height)
+                    x: 1 - (box.origin.x + p.x * box.width),
+                    y: box.origin.y + p.y * box.height
                 )
             }
         }

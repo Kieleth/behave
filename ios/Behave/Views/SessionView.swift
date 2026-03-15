@@ -206,13 +206,33 @@ struct DetectionOverlay: View {
                 SkeletonView(landmarks: body, size: size, status: orchestrator.enforcement.postureStatus)
             }
 
-            // Face bounding box
+            // Face bounding box + landmarks
             if let face = orchestrator.faceDetector.faceLandmarks {
                 let rect = LandmarkMath.scale(face.boundingBox, to: size)
-                Rectangle()
-                    .stroke(statusColor(orchestrator.enforcement.expressionStatus), lineWidth: 2)
-                    .frame(width: rect.width, height: rect.height)
+                let color = statusColor(orchestrator.enforcement.expressionStatus)
+
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(color, lineWidth: 2)
+                    .frame(width: rect.width * 1.2, height: rect.height * 1.2)
                     .position(x: rect.midX, y: rect.midY)
+
+                // Eyes
+                if let leftEye = face.leftEye {
+                    FaceLandmarkDots(points: leftEye, size: size, color: .cyan)
+                }
+                if let rightEye = face.rightEye {
+                    FaceLandmarkDots(points: rightEye, size: size, color: .cyan)
+                }
+
+                // Mouth
+                if let outerLips = face.outerLips {
+                    FaceLandmarkDots(points: outerLips, size: size, color: .pink)
+                }
+
+                // Nose
+                if let nose = face.nose {
+                    FaceLandmarkDots(points: nose, size: size, color: .yellow)
+                }
             }
 
             // Hand points

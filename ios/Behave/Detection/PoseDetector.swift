@@ -73,8 +73,8 @@ struct BodyLandmarks {
 
         func point(for joint: VNHumanBodyPoseObservation.JointName) -> CGPoint? {
             guard let p = points?[joint], p.confidence > 0.3 else { return nil }
-            // Vision coordinates: origin bottom-left, y-up. Convert to top-left.
-            return CGPoint(x: p.location.x, y: 1 - p.location.y)
+            // Flip X for front-camera mirror, Y is already top-down with .right orientation
+            return CGPoint(x: 1 - p.location.x, y: p.location.y)
         }
 
         self.nose = point(for: .nose)
@@ -95,7 +95,7 @@ struct BodyLandmarks {
         var all: [VNHumanBodyPoseObservation.JointName: CGPoint] = [:]
         if let pts = points {
             for (name, recognized) in pts where recognized.confidence > 0.3 {
-                all[name] = CGPoint(x: recognized.location.x, y: 1 - recognized.location.y)
+                all[name] = CGPoint(x: 1 - recognized.location.x, y: recognized.location.y)
             }
         }
         self.allPoints = all
