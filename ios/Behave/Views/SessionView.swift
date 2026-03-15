@@ -155,32 +155,39 @@ struct DebugOverlay: View {
     private func f(_ v: CGFloat) -> String { String(format: "%.2f", v) }
 }
 
-// MARK: - Camera Preview (Apple recommended: layerClass override)
+// MARK: - Camera Preview (UIViewControllerRepresentable — proven approach)
 
-struct CameraPreviewView: UIViewRepresentable {
+struct CameraPreviewView: UIViewControllerRepresentable {
     let session: AVCaptureSession
 
-    func makeUIView(context: Context) -> VideoPreviewView {
-        let view = VideoPreviewView()
-        view.previewLayer.session = session
-        view.previewLayer.videoGravity = .resizeAspectFill
-        view.backgroundColor = .black
-        return view
+    func makeUIViewController(context: Context) -> PreviewViewController {
+        let vc = PreviewViewController()
+        vc.session = session
+        return vc
     }
 
-    func updateUIView(_ uiView: VideoPreviewView, context: Context) {
-        uiView.previewLayer.session = session
+    func updateUIViewController(_ uiViewController: PreviewViewController, context: Context) {
+        uiViewController.session = session
     }
 
-    /// UIView whose backing layer IS the preview layer.
-    /// This guarantees the preview always fills the view — no manual frame management.
-    class VideoPreviewView: UIView {
-        override class var layerClass: AnyClass {
-            AVCaptureVideoPreviewLayer.self
+    class PreviewViewController: UIViewController {
+        var session: AVCaptureSession? {
+            didSet { (view.layer.sublayers?.first as? AVCaptureVideoPreviewLayer)?.session = session }
         }
 
-        var previewLayer: AVCaptureVideoPreviewLayer {
-            layer as! AVCaptureVideoPreviewLayer
+        override func viewDidLoad() {
+            super.viewDidLoad()
+            let previewLayer = AVCaptureVideoPreviewLayer()
+            previewLayer.session = session
+            previewLayer.videoGravity = .resizeAspectFill
+            view.layer.addSublayer(previewLayer)
+        }
+
+        override func viewDidLayoutSubviews() {
+            super.viewDidLayoutSubviews()
+            if let previewLayer = view.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
+                previewLayer.frame = view.bounds
+            }
         }
     }
 }

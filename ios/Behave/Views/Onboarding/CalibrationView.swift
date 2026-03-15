@@ -2,23 +2,23 @@ import SwiftUI
 import AVFoundation
 
 /// Calibration flow:
-/// 1. Start camera + detectors immediately
-/// 2. Wait until face is detected → "Got you!"
-/// 3. Auto-countdown 3-2-1
+/// 1. Start camera + detectors → show "Looking for your face..."
+/// 2. Face detected → show "Found you! Sit straight and tap Start"
+/// 3. User taps Start → 3-2-1 countdown
 /// 4. Auto-capture 5 snapshots
-/// 5. Done → "Locked in"
+/// 5. "Locked in"
 struct CalibrationView: View {
     @ObservedObject var orchestrator: SessionOrchestrator
     @Environment(\.dismiss) private var dismiss
     @State private var phase: Phase = .detecting
     @State private var countdown: Int = 3
     @State private var timer: Timer?
-    @State private var detectionCheckTimer: Timer?
 
     enum Phase {
-        case detecting   // waiting for face
-        case countdown   // 3-2-1
-        case capturing   // auto-capturing snapshots
+        case detecting     // waiting to find face
+        case faceFound     // face detected — waiting for user to tap Start
+        case countdown     // 3-2-1
+        case capturing     // auto-capturing
         case done
     }
 
@@ -35,6 +35,8 @@ struct CalibrationView: View {
                     switch phase {
                     case .detecting:
                         detectingView
+                    case .faceFound:
+                        faceFoundView
                     case .countdown:
                         countdownView
                     case .capturing:
@@ -56,10 +58,8 @@ struct CalibrationView: View {
                 }
             }
             .onAppear {
-                // Start detectors immediately
                 orchestrator.startPreview()
-                orchestrator.startCalibration()
-                startDetectionCheck()
+                startDetectionPolling()
             }
             .onDisappear {
                 cleanup()
@@ -67,7 +67,7 @@ struct CalibrationView: View {
         }
     }
 
-    // MARK: - Phase 1: Detecting
+    // MARK: - Phase 1: Detecting face
 
     private var detectingView: some View {
         VStack(spacing: 20) {
@@ -76,8 +76,9 @@ struct CalibrationView: View {
             ProgressView()
                 .scaleEffect(1.5)
                 .tint(.white)
+                .padding(.bottom, 8)
 
-            Text("Looking for you...")
+            Text("Looking for your face...")
                 .font(.title2.bold())
                 .foregroundStyle(.white)
 
@@ -86,10 +87,11 @@ struct CalibrationView: View {
                 .foregroundStyle(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
 
-            // Live detection status
+            // Live status
             VStack(alignment: .leading, spacing: 8) {
-                detectionRow("Face", detected: orchestrator.faceDetector.faceLandmarks != nil)
-                detectionRow("Body", detected: orchestrator.poseDetector.bodyLandmarks != nil)
+                statusRow("Face", orchestrator.faceDetector.faceLandmarks != nil)
+                statusRow("Body", orchestrator.poseDetector.bodyLandmarks != nil)
+                statusRow("Frames", orchestrator.processedFrameCount > 0)
             }
             .padding()
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -98,32 +100,67 @@ struct CalibrationView: View {
         }
     }
 
-    private func detectionRow(_ label: String, detected: Bool) -> some View {
+    private func statusRow(_ label: String, _ ok: Bool) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: detected ? "checkmark.circle.fill" : "circle.dotted")
-                .foregroundStyle(detected ? .green : .gray)
+            Image(systemName: ok ? "checkmark.circle.fill" : "circle.dotted")
+                .foregroundStyle(ok ? .green : .gray)
             Text(label)
-                .font(.subheadline)
                 .foregroundStyle(.white)
             Spacer()
-            Text(detected ? "Detected" : "Searching...")
+            Text(ok ? "OK" : "...")
                 .font(.caption)
-                .foregroundStyle(detected ? .green : .gray)
+                .foregroundStyle(ok ? .green : .gray)
         }
+        .font(.subheadline)
     }
 
-    private func startDetectionCheck() {
-        // Poll every 0.3s to see if we can detect the user
-        detectionCheckTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { _ in
-            if orchestrator.isUserDetected {
-                detectionCheckTimer?.invalidate()
-                detectionCheckTimer = nil
-                startCountdown()
+    private func startDetectionPolling() {
+        timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { _ in
+            if orchestrator.faceDetector.faceLandmarks != nil {
+                timer?.invalidate()
+                timer = nil
+                phase = .faceFound
             }
         }
     }
 
-    // MARK: - Phase 2: Countdown
+    // MARK: - Phase 2: Face found — user decides when to start
+
+    private var faceFoundView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            Image(systemName: "face.smiling.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(.green)
+
+            Text("Found you!")
+                .font(.title.bold())
+                .foregroundStyle(.white)
+
+            Text("Sit up straight with good posture, then tap Start to calibrate.")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.7))
+                .multilineTextAlignment(.center)
+
+            Spacer()
+
+            Button {
+                orchestrator.startCalibration()
+                startCountdown()
+            } label: {
+                Text("Start calibration")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(.green)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+        }
+    }
+
+    // MARK: - Phase 3: Countdown
 
     private var countdownView: some View {
         VStack(spacing: 20) {
@@ -150,12 +187,13 @@ struct CalibrationView: View {
                 countdown -= 1
             } else {
                 timer?.invalidate()
+                timer = nil
                 startAutoCapture()
             }
         }
     }
 
-    // MARK: - Phase 3: Capturing
+    // MARK: - Phase 4: Capturing
 
     private var capturingView: some View {
         VStack(spacing: 20) {
@@ -200,12 +238,13 @@ struct CalibrationView: View {
             orchestrator.captureCalibrationSnapshot()
             if orchestrator.isCalibrated {
                 timer?.invalidate()
+                timer = nil
                 phase = .done
             }
         }
     }
 
-    // MARK: - Phase 4: Done
+    // MARK: - Phase 5: Done
 
     private var doneView: some View {
         VStack(spacing: 20) {
@@ -244,7 +283,5 @@ struct CalibrationView: View {
     private func cleanup() {
         timer?.invalidate()
         timer = nil
-        detectionCheckTimer?.invalidate()
-        detectionCheckTimer = nil
     }
 }
