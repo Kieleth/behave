@@ -116,8 +116,8 @@ struct SessionView: View {
             .task {
                 orchestrator.modelContext = modelContext
                 orchestrator.loadSettings()
-                // Start camera preview immediately for visual feedback
-                orchestrator.camera.start()
+                // Start camera + detectors for preview (no session yet)
+                orchestrator.startPreview()
             }
             .onChange(of: orchestrator.isActive) { _, active in
                 // Keep screen on during active sessions

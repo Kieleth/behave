@@ -127,8 +127,8 @@ struct CalibrationView: View {
     }
 
     private func startCountdown() {
-        // Start camera if not already running
-        orchestrator.camera.start()
+        // Start camera + detectors for calibration (no full session)
+        orchestrator.startPreview()
         orchestrator.startCalibration()
         phase = .countdown
         countdown = 3

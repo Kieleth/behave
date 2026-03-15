@@ -79,6 +79,25 @@ final class SessionOrchestrator: ObservableObject {
         }
     }
 
+    /// Start camera + detectors only (no session, no pomodoro).
+    /// Used for calibration and preview.
+    func startPreview() {
+        camera.onFrame = { [weak self] sampleBuffer in
+            self?.runDetectors(sampleBuffer)
+        }
+        camera.start()
+    }
+
+    /// Run detectors without classification/enforcement.
+    private func runDetectors(_ sampleBuffer: CMSampleBuffer) {
+        frameCount += 1
+        guard frameCount % processEveryNthFrame == 0 else { return }
+        let orientation = camera.visionOrientation
+        poseDetector.detect(in: sampleBuffer, orientation: orientation)
+        faceDetector.detect(in: sampleBuffer, orientation: orientation)
+        handDetector.detect(in: sampleBuffer, orientation: orientation)
+    }
+
     func start() {
         guard !isActive else { return }
 
