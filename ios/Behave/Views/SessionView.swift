@@ -8,6 +8,7 @@ struct SessionView: View {
     @StateObject private var orchestrator = SessionOrchestrator()
     @Environment(\.modelContext) private var modelContext
     @State private var showCalibration = false
+    @State private var showDebug = false
 
     var body: some View {
         NavigationStack {
@@ -60,8 +61,30 @@ struct SessionView: View {
                                 PomodoroOverlay(pomodoro: orchestrator.pomodoro)
                             }
                         }
+
+                        // Debug overlay (top-left, below status bar)
+                        if showDebug {
+                            HStack {
+                                DebugOverlay(orchestrator: orchestrator)
+                                Spacer()
+                            }
+                        }
+
                         Spacer()
-                        ControlBar(orchestrator: orchestrator, showCalibration: $showCalibration)
+
+                        HStack {
+                            ControlBar(orchestrator: orchestrator, showCalibration: $showCalibration)
+                        }
+
+                        // Debug toggle
+                        Button {
+                            showDebug.toggle()
+                        } label: {
+                            Text(showDebug ? "Hide debug" : "Debug")
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.4))
+                        }
+                        .padding(.top, 4)
                     }
                     .padding()
                 } else {
@@ -96,8 +119,65 @@ struct SessionView: View {
                 // Start camera preview immediately for visual feedback
                 orchestrator.camera.start()
             }
+            .onChange(of: orchestrator.isActive) { _, active in
+                // Keep screen on during active sessions
+                UIApplication.shared.isIdleTimerDisabled = active
+            }
+            .onDisappear {
+                UIApplication.shared.isIdleTimerDisabled = false
+            }
         }
     }
+}
+
+// MARK: - Debug Overlay
+
+struct DebugOverlay: View {
+    @ObservedObject var orchestrator: SessionOrchestrator
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("DEBUG")
+                .font(.caption.bold().monospaced())
+                .foregroundStyle(.yellow)
+
+            Group {
+                if let body = orchestrator.poseDetector.bodyLandmarks {
+                    let pts = body.allPoints.count
+                    Text("Pose: \(pts) joints")
+                    if let nose = body.nose {
+                        Text("  nose: (\(f(nose.x)), \(f(nose.y)))")
+                    }
+                    if let ls = body.leftShoulder, let rs = body.rightShoulder {
+                        Text("  shoulders: L(\(f(ls.x)),\(f(ls.y))) R(\(f(rs.x)),\(f(rs.y)))")
+                    }
+                } else {
+                    Text("Pose: none")
+                }
+
+                if let face = orchestrator.faceDetector.faceLandmarks {
+                    let b = face.boundingBox
+                    Text("Face: (\(f(b.minX)),\(f(b.minY))) \(f(b.width))x\(f(b.height))")
+                } else {
+                    Text("Face: none")
+                }
+
+                Text("Hands: \(orchestrator.handDetector.hands.count)")
+
+                Text("Calibrated: \(orchestrator.isCalibrated ? "YES" : "NO")")
+
+                let e = orchestrator.enforcement
+                Text("Score: P:\(f(e.postureStatus.score)) E:\(f(e.expressionStatus.score)) H:\(f(e.habitStatus.score))")
+            }
+            .font(.caption2.monospaced())
+            .foregroundStyle(.green)
+        }
+        .padding(8)
+        .background(.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func f(_ v: Double) -> String { String(format: "%.2f", v) }
+    private func f(_ v: CGFloat) -> String { String(format: "%.2f", v) }
 }
 
 // MARK: - Camera Preview (UIKit bridge)

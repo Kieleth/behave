@@ -12,10 +12,10 @@ final class HandDetector: ObservableObject {
         return req
     }()
 
-    func detect(in sampleBuffer: CMSampleBuffer) {
+    func detect(in sampleBuffer: CMSampleBuffer, orientation: CGImagePropertyOrientation = .right) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up)
+        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation)
         try? handler.perform([request])
 
         let results = (request.results ?? []).map { HandLandmarks(from: $0) }

@@ -187,9 +187,10 @@ final class SessionOrchestrator: ObservableObject {
         guard frameCount % processEveryNthFrame == 0 else { return }
 
         // Run detectors (all on Neural Engine, fast)
-        poseDetector.detect(in: sampleBuffer)
-        faceDetector.detect(in: sampleBuffer)
-        handDetector.detect(in: sampleBuffer)
+        let orientation = camera.visionOrientation
+        poseDetector.detect(in: sampleBuffer, orientation: orientation)
+        faceDetector.detect(in: sampleBuffer, orientation: orientation)
+        handDetector.detect(in: sampleBuffer, orientation: orientation)
 
         // Classify + enforce on main thread (reading @Published properties)
         DispatchQueue.main.async { [weak self] in

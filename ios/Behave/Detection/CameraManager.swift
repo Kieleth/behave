@@ -10,6 +10,10 @@ final class CameraManager: NSObject, ObservableObject {
 
     let session = AVCaptureSession()
 
+    /// The orientation to pass to VNImageRequestHandler.
+    /// Depends on camera position and whether the connection is mirrored.
+    private(set) var visionOrientation: CGImagePropertyOrientation = .right
+
     private let videoOutput = AVCaptureVideoDataOutput()
     private let processingQueue = DispatchQueue(label: "com.kieleth.behave.camera", qos: .userInteractive)
 
@@ -62,9 +66,11 @@ final class CameraManager: NSObject, ObservableObject {
             session.addOutput(videoOutput)
         }
 
-        // Mirror front camera output
         if let connection = videoOutput.connection(with: .video) {
+            // Mirror front camera so preview and overlay coordinates match
             connection.isVideoMirrored = true
+            // Front camera in portrait, mirrored: Vision needs .right
+            visionOrientation = .right
         }
 
         session.commitConfiguration()
