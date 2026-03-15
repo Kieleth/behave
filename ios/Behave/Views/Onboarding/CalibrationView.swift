@@ -25,7 +25,7 @@ struct CalibrationView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Camera preview
+                // Camera preview — reuse session, lightweight
                 CameraPreviewView(session: orchestrator.camera.session)
                     .ignoresSafeArea()
 

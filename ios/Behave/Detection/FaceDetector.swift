@@ -70,25 +70,29 @@ struct FaceLandmarks {
     }
 
     init(from observation: VNFaceObservation, imageSize: CGSize) {
-        // Bounding box: Vision uses bottom-left origin. Convert to top-left (UIKit).
+        // Bounding box: flip X for front-camera mirror, no Y flip
+        // (empirically determined via diagnostic dots)
         let box = observation.boundingBox
         self.boundingBox = CGRect(
-            x: box.origin.x,
-            y: 1 - box.origin.y - box.height,
+            x: 1 - box.origin.x - box.width,
+            y: box.origin.y,
             width: box.width,
             height: box.height
         )
 
         let landmarks = observation.landmarks
 
-        // Use Apple's pointsInImage(imageSize:) for correct coordinate conversion.
-        // This returns points in image coordinates with origin at upper-left.
+        // Use Apple's pointsInImage(imageSize:) for landmark conversion.
+        // Returns points with origin at upper-left in image pixel space.
+        // Then normalize and flip X to match mirrored preview.
         func convert(_ region: VNFaceLandmarkRegion2D?) -> [CGPoint]? {
             guard let region = region else { return nil }
             let imgPoints = region.pointsInImage(imageSize: imageSize)
-            // Normalize to 0-1 by dividing by image size
             return imgPoints.map { p in
-                CGPoint(x: p.x / imageSize.width, y: p.y / imageSize.height)
+                CGPoint(
+                    x: 1 - (p.x / imageSize.width),   // flip X for mirror
+                    y: p.y / imageSize.height
+                )
             }
         }
 

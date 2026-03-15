@@ -19,10 +19,6 @@ struct SessionView: View {
                     CameraPreviewView(session: orchestrator.camera.session)
                         .ignoresSafeArea()
 
-                    // Diagnostic: 4 colored dots showing possible transforms
-                    DiagnosticDots(orchestrator: orchestrator)
-                        .ignoresSafeArea()
-
                     if orchestrator.isActive {
                         // Detection overlays (hidden during breaks)
                         if !orchestrator.isPausedForBreak {
@@ -104,7 +100,7 @@ struct SessionView: View {
             }
             .navigationTitle("")
             .navigationBarHidden(true)
-            .sheet(isPresented: $showCalibration) {
+            .fullScreenCover(isPresented: $showCalibration) {
                 CalibrationView(orchestrator: orchestrator)
             }
             .task {
@@ -153,19 +149,6 @@ struct DebugOverlay: View {
 
             Text("Hands: \(orchestrator.handDetector.hands.count)")
 
-            // Legend for diagnostic dots
-            if raw != .zero {
-                HStack(spacing: 4) {
-                    Circle().fill(.red).frame(width: 6, height: 6)
-                    Text("xy")
-                    Circle().fill(.blue).frame(width: 6, height: 6)
-                    Text("Xy")
-                    Circle().fill(.green).frame(width: 6, height: 6)
-                    Text("xY")
-                    Circle().fill(.yellow).frame(width: 6, height: 6)
-                    Text("XY")
-                }
-            }
         }
         .font(.caption2.monospaced())
         .foregroundStyle(.white)
@@ -174,43 +157,6 @@ struct DebugOverlay: View {
     }
 
     private func f(_ v: CGFloat) -> String { String(format: "%.2f", v) }
-}
-
-// MARK: - Diagnostic Dots (shows 4 possible transforms of face center)
-
-struct DiagnosticDots: View {
-    @ObservedObject var orchestrator: SessionOrchestrator
-
-    var body: some View {
-        GeometryReader { geo in
-            let size = geo.size
-            let raw = orchestrator.faceDetector.rawBoundingBox
-
-            if raw != .zero {
-                let cx = raw.midX
-                let cy = raw.midY
-
-                // RED: raw (x, y) — no flips
-                dot(.red, x: cx, y: cy, size: size)
-
-                // BLUE: (1-x, y) — X flipped only
-                dot(.blue, x: 1 - cx, y: cy, size: size)
-
-                // GREEN: (x, 1-y) — Y flipped only
-                dot(.green, x: cx, y: 1 - cy, size: size)
-
-                // YELLOW: (1-x, 1-y) — both flipped
-                dot(.yellow, x: 1 - cx, y: 1 - cy, size: size)
-            }
-        }
-    }
-
-    private func dot(_ color: Color, x: CGFloat, y: CGFloat, size: CGSize) -> some View {
-        Circle()
-            .fill(color)
-            .frame(width: 16, height: 16)
-            .position(x: x * size.width, y: y * size.height)
-    }
 }
 
 // MARK: - Camera Preview (UIViewControllerRepresentable — proven approach)
