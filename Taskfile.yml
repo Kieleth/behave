@@ -4,7 +4,7 @@ vars:
   ASC_KEY_ID: PMRHLFZQ52
   ASC_ISSUER_ID: cde0714c-ba03-4a2d-827b-ae9d85149dd6
   ASC_KEY_PATH:
-    sh: echo "$(pwd)/.keys/AuthKey_PMRHLFZQ52.p8"
+    sh: realpath "$(pwd)/.keys/AuthKey_PMRHLFZQ52.p8"
 
 tasks:
   ios:generate:
