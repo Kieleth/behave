@@ -64,11 +64,7 @@ struct CalibrationView: View {
                 }
             }
             .onAppear {
-                // Camera + detectors already running from SessionView.
-                // Only start if not already running.
-                if !orchestrator.camera.isRunning {
-                    orchestrator.startPreview()
-                }
+                // Camera + detectors already running from SessionView — just poll.
                 startDetectionPolling()
             }
             .onDisappear {

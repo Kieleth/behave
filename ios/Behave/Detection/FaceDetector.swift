@@ -59,13 +59,17 @@ struct FaceLandmarks {
 
         let landmarks = observation.landmarks
 
+        // Transformed box origin (X already flipped for mirror)
+        let tbx = 1 - box.origin.x - box.width
+
         func convert(_ region: VNFaceLandmarkRegion2D?) -> [CGPoint]? {
             guard let region = region else { return nil }
             return region.normalizedPoints.map { p in
-                // Points are relative to bounding box, convert to image coordinates
-                // Flip X for front-camera mirror
+                // Points are relative to bounding box (0-1).
+                // Place within the already-flipped bounding box — no additional X flip
+                // because the buffer is already mirrored (isVideoMirrored=true).
                 CGPoint(
-                    x: 1 - (box.origin.x + p.x * box.width),
+                    x: tbx + p.x * box.width,
                     y: box.origin.y + p.y * box.height
                 )
             }
