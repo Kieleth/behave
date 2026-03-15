@@ -11,6 +11,9 @@ final class LocalSettings {
     var calibrationShoulderMidY: Double
     var calibrationHeadToShoulderRatio: Double
     var calibrationShoulderAngle: Double
+    var calibrationShoulderWidth: Double
+    var calibrationFaceBBoxHeight: Double
+    var calibrationFaceBBoxCenterY: Double
     var isCalibrated: Bool
 
     // Thresholds
@@ -37,6 +40,9 @@ final class LocalSettings {
         self.calibrationShoulderMidY = 0
         self.calibrationHeadToShoulderRatio = 0
         self.calibrationShoulderAngle = 0
+        self.calibrationShoulderWidth = 0
+        self.calibrationFaceBBoxHeight = 0
+        self.calibrationFaceBBoxCenterY = 0
         self.isCalibrated = false
         self.postureWarningSeconds = 5
         self.postureAlertSeconds = 15

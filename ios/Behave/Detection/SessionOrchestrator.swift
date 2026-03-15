@@ -20,7 +20,7 @@ final class SessionOrchestrator: ObservableObject {
     // Classifiers
     private let postureClassifier = PostureClassifier()
     private let expressionClassifier = ExpressionClassifier()
-    private let habitClassifier = HabitClassifier()
+    private var habitClassifier = HabitClassifier()
     private let speechClassifier = SpeechClassifier()
 
     // Enforcer
@@ -73,7 +73,10 @@ final class SessionOrchestrator: ObservableObject {
                     noseY: settings.calibrationNoseY,
                     shoulderMidY: settings.calibrationShoulderMidY,
                     headToShoulderRatio: settings.calibrationHeadToShoulderRatio,
-                    shoulderAngle: settings.calibrationShoulderAngle
+                    shoulderAngle: settings.calibrationShoulderAngle,
+                    shoulderWidth: settings.calibrationShoulderWidth,
+                    faceBBoxHeight: settings.calibrationFaceBBoxHeight,
+                    faceBBoxCenterY: settings.calibrationFaceBBoxCenterY
                 )
                 isCalibrated = true
             }
@@ -222,8 +225,14 @@ final class SessionOrchestrator: ObservableObject {
     }
 
     private func classifyAndEnforce() {
-        let postureResult = poseDetector.bodyLandmarks.map {
-            postureClassifier.classify(landmarks: $0, calibration: calibration)
+        // Posture: try body pose first, fall back to face-only
+        let postureResult: PostureClassifier.Result?
+        if let body = poseDetector.bodyLandmarks {
+            postureResult = postureClassifier.classify(landmarks: body, calibration: calibration)
+        } else if let face = faceDetector.faceLandmarks {
+            postureResult = postureClassifier.classifyFromFace(face, calibration: calibration)
+        } else {
+            postureResult = nil
         }
 
         let expressionResult = faceDetector.faceLandmarks.map {
@@ -318,7 +327,10 @@ final class SessionOrchestrator: ObservableObject {
         }
 
         if calibrationSnapshots.count >= calibrationTarget {
-            calibration = PostureClassifier.calibrate(from: calibrationSnapshots)
+            calibration = PostureClassifier.calibrate(
+                from: calibrationSnapshots,
+                face: faceDetector.faceLandmarks
+            )
             isCalibrated = true
             saveCalibration()
         }
@@ -339,6 +351,9 @@ final class SessionOrchestrator: ObservableObject {
         settings.calibrationShoulderMidY = calibration.shoulderMidY
         settings.calibrationHeadToShoulderRatio = calibration.headToShoulderRatio
         settings.calibrationShoulderAngle = calibration.shoulderAngle
+        settings.calibrationShoulderWidth = calibration.shoulderWidth
+        settings.calibrationFaceBBoxHeight = calibration.faceBBoxHeight
+        settings.calibrationFaceBBoxCenterY = calibration.faceBBoxCenterY
         settings.isCalibrated = true
         try? ctx.save()
     }
