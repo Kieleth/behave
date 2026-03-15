@@ -17,19 +17,6 @@ final class FaceDetector: ObservableObject {
     func detect(in sampleBuffer: CMSampleBuffer, orientation: CGImagePropertyOrientation = .right) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
-        // Get buffer dimensions (landscape for front camera)
-        let bufW = CVPixelBufferGetWidth(pixelBuffer)
-        let bufH = CVPixelBufferGetHeight(pixelBuffer)
-
-        // After orientation rotation, the "image" size is swapped for .right/.left
-        let imageSize: CGSize
-        switch orientation {
-        case .right, .left, .rightMirrored, .leftMirrored:
-            imageSize = CGSize(width: bufH, height: bufW)  // portrait
-        default:
-            imageSize = CGSize(width: bufW, height: bufH)
-        }
-
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation)
         try? handler.perform([request])
 
@@ -41,7 +28,7 @@ final class FaceDetector: ObservableObject {
             return
         }
 
-        let landmarks = FaceLandmarks(from: observation, imageSize: imageSize)
+        let landmarks = FaceLandmarks(from: observation)
         DispatchQueue.main.async {
             self.faceLandmarks = landmarks
             self.rawBoundingBox = observation.boundingBox
@@ -69,7 +56,7 @@ struct FaceLandmarks {
         return CGPoint(x: sumX / CGFloat(lips.count), y: sumY / CGFloat(lips.count))
     }
 
-    init(from observation: VNFaceObservation, imageSize: CGSize) {
+    init(from observation: VNFaceObservation) {
         // Bounding box: flip X for front-camera mirror, no Y flip
         // (empirically determined via diagnostic dots)
         let box = observation.boundingBox
@@ -80,18 +67,20 @@ struct FaceLandmarks {
             height: box.height
         )
 
+        // Transformed box left edge (already X-flipped)
+        let tbx = 1 - box.origin.x - box.width
+
         let landmarks = observation.landmarks
 
-        // Use Apple's pointsInImage(imageSize:) for landmark conversion.
-        // Returns points with origin at upper-left in image pixel space.
-        // Then normalize and flip X to match mirrored preview.
+        // Manual conversion: place points within the transformed bounding box.
+        // normalizedPoints are 0-1 relative to the raw bounding box.
+        // We map them into the already-flipped box so they match the preview.
         func convert(_ region: VNFaceLandmarkRegion2D?) -> [CGPoint]? {
             guard let region = region else { return nil }
-            let imgPoints = region.pointsInImage(imageSize: imageSize)
-            return imgPoints.map { p in
+            return region.normalizedPoints.map { p in
                 CGPoint(
-                    x: 1 - (p.x / imageSize.width),   // flip X for mirror
-                    y: p.y / imageSize.height
+                    x: tbx + p.x * box.width,
+                    y: box.origin.y + p.y * box.height
                 )
             }
         }

@@ -10,8 +10,10 @@ final class CameraManager: NSObject, ObservableObject {
 
     let session = AVCaptureSession()
 
+    /// Pre-configured preview layer — created during setup, reused by views.
+    let previewLayer = AVCaptureVideoPreviewLayer()
+
     /// The orientation to pass to VNImageRequestHandler.
-    /// Depends on camera position and whether the connection is mirrored.
     private(set) var visionOrientation: CGImagePropertyOrientation = .right
 
     private let videoOutput = AVCaptureVideoDataOutput()
@@ -67,11 +69,13 @@ final class CameraManager: NSObject, ObservableObject {
         }
 
         if let connection = videoOutput.connection(with: .video) {
-            // Mirror front camera so preview and overlay coordinates match
             connection.isVideoMirrored = true
-            // Front camera in portrait, mirrored: Vision needs .right
             visionOrientation = .right
         }
+
+        // Configure preview layer BEFORE session starts
+        previewLayer.session = session
+        previewLayer.videoGravity = .resizeAspectFill
 
         session.commitConfiguration()
     }
