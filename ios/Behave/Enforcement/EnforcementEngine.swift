@@ -185,6 +185,12 @@ struct BehaviorEnforcer {
     private var lastAlertTime: Date?
     private var cooldownInterval: TimeInterval = 30.0
 
+    init(name: String, warningAfter: TimeInterval, alertAfter: TimeInterval) {
+        self.name = name
+        self.warningAfter = warningAfter
+        self.alertAfter = alertAfter
+    }
+
     struct EnforcerResult {
         let status: BehaviorStatus
         let alert: BehaviorAlert?

@@ -1,0 +1,40 @@
+version: '3'
+
+vars:
+  ASC_KEY_ID: PMRHLFZQ52
+  ASC_ISSUER_ID: cde0714c-ba03-4a2d-827b-ae9d85149dd6
+  ASC_KEY_PATH:
+    sh: echo "$(pwd)/.keys/AuthKey_PMRHLFZQ52.p8"
+
+tasks:
+  ios:generate:
+    desc: Generate Xcode project from project.yml
+    dir: ios
+    cmds:
+      - xcodegen generate
+
+  ios:build:
+    desc: Build iOS app (debug, simulator)
+    deps: [ios:generate]
+    dir: ios
+    cmds:
+      - xcodebuild build -project Behave.xcodeproj -scheme Behave -destination 'platform=iOS Simulator,name=iPhone 16,arch=arm64' -quiet
+
+  ios:testflight:
+    desc: Archive, export, and upload to TestFlight
+    deps: [ios:generate]
+    dir: ios
+    cmds:
+      - rm -rf build/Behave.xcarchive build/export
+      - xcodebuild archive -project Behave.xcodeproj -scheme Behave -sdk iphoneos -configuration Release -archivePath build/Behave.xcarchive -allowProvisioningUpdates -authenticationKeyPath {{.ASC_KEY_PATH}} -authenticationKeyID {{.ASC_KEY_ID}} -authenticationKeyIssuerID {{.ASC_ISSUER_ID}} -quiet
+      - xcodebuild -exportArchive -archivePath build/Behave.xcarchive -exportOptionsPlist ExportOptions.plist -exportPath build/export -allowProvisioningUpdates -authenticationKeyPath {{.ASC_KEY_PATH}} -authenticationKeyID {{.ASC_KEY_ID}} -authenticationKeyIssuerID {{.ASC_ISSUER_ID}}
+
+  ios:bump:
+    desc: Bump build number
+    dir: ios
+    cmds:
+      - |
+        CURRENT=$(grep CURRENT_PROJECT_VERSION project.yml | awk '{print $2}')
+        NEXT=$((CURRENT + 1))
+        sed -i '' "s/CURRENT_PROJECT_VERSION: $CURRENT/CURRENT_PROJECT_VERSION: $NEXT/" project.yml
+        echo "Build number: $CURRENT → $NEXT"

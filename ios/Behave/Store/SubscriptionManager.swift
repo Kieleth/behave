@@ -105,10 +105,10 @@ final class SubscriptionManager: ObservableObject {
     // MARK: - Private
 
     private func listenForTransactions() -> Task<Void, Never> {
-        Task.detached {
+        Task.detached { [weak self] in
             for await result in Transaction.updates {
-                if let _ = try? self.checkVerified(result) {
-                    await self.checkEntitlements()
+                if case .verified = result {
+                    await self?.checkEntitlements()
                 }
             }
         }

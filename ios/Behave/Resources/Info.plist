@@ -21,13 +21,15 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Behave uses the camera to analyze your posture, facial expressions, and habits to help you improve.</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Behave uses Face ID for secure authentication.</string>
+	<string>Behave analyzes your posture, expressions, and habits on-device. No images are stored or transmitted.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Behave uses the microphone to analyze your speech pace, volume, and filler words.</string>
+	<string>Behave analyzes speech pace and filler words on-device. No audio is stored or transmitted.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Behave uses speech recognition to analyze your speaking patterns and suggest improvements.</string>
+	<string>Behave analyzes speech patterns on-device. No audio is stored or transmitted.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>

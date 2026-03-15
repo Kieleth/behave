@@ -66,34 +66,32 @@ final class ConfigSync: ObservableObject {
             changed = true
         }
 
-        let pairs: [(String, WritableKeyPath<LocalSettings, Double>, Double)] = [
-            (Key.postureWarningSeconds, \.postureWarningSeconds, settings.postureWarningSeconds),
-            (Key.postureAlertSeconds, \.postureAlertSeconds, settings.postureAlertSeconds),
-            (Key.expressionWarningSeconds, \.expressionWarningSeconds, settings.expressionWarningSeconds),
-            (Key.habitWarningSeconds, \.habitWarningSeconds, settings.habitWarningSeconds),
-        ]
-
-        for (key, keyPath, current) in pairs {
+        func pullDouble(_ key: String, current: Double, apply: (Double) -> Void) {
             let remote = store.double(forKey: key)
             if remote > 0 && remote != current {
-                settings[keyPath: keyPath] = remote
+                apply(remote)
                 changed = true
             }
         }
 
-        let boolPairs: [(String, WritableKeyPath<LocalSettings, Bool>, Bool)] = [
-            (Key.audioAlertsEnabled, \.audioAlertsEnabled, settings.audioAlertsEnabled),
-            (Key.hapticAlertsEnabled, \.hapticAlertsEnabled, settings.hapticAlertsEnabled),
-            (Key.speechMonitoringEnabled, \.speechMonitoringEnabled, settings.speechMonitoringEnabled),
-        ]
-
-        for (key, keyPath, current) in boolPairs {
-            let remote = store.bool(forKey: key)
-            if store.object(forKey: key) != nil && remote != current {
-                settings[keyPath: keyPath] = remote
-                changed = true
+        func pullBool(_ key: String, current: Bool, apply: (Bool) -> Void) {
+            if store.object(forKey: key) != nil {
+                let remote = store.bool(forKey: key)
+                if remote != current {
+                    apply(remote)
+                    changed = true
+                }
             }
         }
+
+        pullDouble(Key.postureWarningSeconds, current: settings.postureWarningSeconds) { settings.postureWarningSeconds = $0 }
+        pullDouble(Key.postureAlertSeconds, current: settings.postureAlertSeconds) { settings.postureAlertSeconds = $0 }
+        pullDouble(Key.expressionWarningSeconds, current: settings.expressionWarningSeconds) { settings.expressionWarningSeconds = $0 }
+        pullDouble(Key.habitWarningSeconds, current: settings.habitWarningSeconds) { settings.habitWarningSeconds = $0 }
+
+        pullBool(Key.audioAlertsEnabled, current: settings.audioAlertsEnabled) { settings.audioAlertsEnabled = $0 }
+        pullBool(Key.hapticAlertsEnabled, current: settings.hapticAlertsEnabled) { settings.hapticAlertsEnabled = $0 }
+        pullBool(Key.speechMonitoringEnabled, current: settings.speechMonitoringEnabled) { settings.speechMonitoringEnabled = $0 }
 
         // Pomodoro settings
         let pomWork = store.double(forKey: Key.pomodoroWorkDuration)

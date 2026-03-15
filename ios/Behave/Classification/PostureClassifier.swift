@@ -78,8 +78,8 @@ struct PostureClassifier {
 
         let count = Double(valid.count)
         let avgNoseY = valid.reduce(0.0) { $0 + $1.0.y } / count
-        let avgShoulderMidY = valid.reduce(0.0) { $0 + ($1.1.y + $1.2.y) / 2 } / count
-        let avgRatio = valid.reduce(0.0) { $0 + abs($1.0.y - ($1.1.y + $1.2.y) / 2) } / count
+        let avgShoulderMidY = valid.reduce(0.0) { $0 + ($1.1.y + $1.2.y) / CGFloat(2) } / count
+        let avgRatio = valid.reduce(0.0) { $0 + abs($1.0.y - ($1.1.y + $1.2.y) / CGFloat(2)) } / count
         let avgAngle = valid.reduce(0.0) { $0 + LandmarkMath.angleDegrees(from: $1.1, to: $1.2) } / count
 
         return Calibration(

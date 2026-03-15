@@ -224,11 +224,12 @@ struct CoachingEngine {
     private static func detectConsistentWeakness(_ sessions: [LocalSession]) -> Pattern? {
         var worstCounts: [String: Int] = [:]
         for session in sessions {
-            let scores = [
-                ("Posture", session.postureScore ?? 1),
-                ("Expression", session.expressionScore ?? 1),
-                ("Habits", session.habitScore ?? 1),
-                ("Speech", session.speechScore ?? 1),
+            let p = session.postureScore ?? 1.0
+            let e = session.expressionScore ?? 1.0
+            let h = session.habitScore ?? 1.0
+            let s = session.speechScore ?? 1.0
+            let scores: [(String, Double)] = [
+                ("Posture", p), ("Expression", e), ("Habits", h), ("Speech", s),
             ]
             if let worst = scores.min(by: { $0.1 < $1.1 }) {
                 worstCounts[worst.0, default: 0] += 1
