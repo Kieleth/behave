@@ -29,7 +29,13 @@ struct CalibrationView: View {
                 CameraPreviewView(session: orchestrator.camera.session)
                     .ignoresSafeArea()
 
-                Color.black.opacity(0.4).ignoresSafeArea()
+                Color.black.opacity(0.3).ignoresSafeArea()
+
+                // Face tracking overlay — follows the face in real-time
+                if phase == .detecting || phase == .faceFound {
+                    FaceTrackingOverlay(orchestrator: orchestrator)
+                        .ignoresSafeArea()
+                }
 
                 VStack(spacing: 24) {
                     switch phase {
@@ -58,7 +64,11 @@ struct CalibrationView: View {
                 }
             }
             .onAppear {
-                orchestrator.startPreview()
+                // Camera + detectors already running from SessionView.
+                // Only start if not already running.
+                if !orchestrator.camera.isRunning {
+                    orchestrator.startPreview()
+                }
                 startDetectionPolling()
             }
             .onDisappear {
@@ -70,48 +80,28 @@ struct CalibrationView: View {
     // MARK: - Phase 1: Detecting face
 
     private var detectingView: some View {
-        VStack(spacing: 20) {
-            Spacer()
-
-            ProgressView()
-                .scaleEffect(1.5)
-                .tint(.white)
-                .padding(.bottom, 8)
-
-            Text("Looking for your face...")
-                .font(.title2.bold())
-                .foregroundStyle(.white)
-
-            Text("Make sure your face is visible in the camera")
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.7))
-                .multilineTextAlignment(.center)
-
-            // Live status
-            VStack(alignment: .leading, spacing: 8) {
-                statusRow("Face", orchestrator.faceDetector.faceLandmarks != nil)
-                statusRow("Body", orchestrator.poseDetector.bodyLandmarks != nil)
-                statusRow("Frames", orchestrator.processedFrameCount > 0)
+        VStack(spacing: 16) {
+            // Top — scanning indicator
+            HStack {
+                ProgressView()
+                    .tint(.white)
+                Text("Scanning...")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.white)
             }
-            .padding()
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: Capsule())
+            .padding(.top, 60)
 
             Spacer()
-        }
-    }
 
-    private func statusRow(_ label: String, _ ok: Bool) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: ok ? "checkmark.circle.fill" : "circle.dotted")
-                .foregroundStyle(ok ? .green : .gray)
-            Text(label)
+            // Bottom — instruction
+            Text("Position your face in the camera")
+                .font(.headline)
                 .foregroundStyle(.white)
-            Spacer()
-            Text(ok ? "OK" : "...")
-                .font(.caption)
-                .foregroundStyle(ok ? .green : .gray)
+                .padding(.bottom, 40)
         }
-        .font(.subheadline)
     }
 
     private func startDetectionPolling() {
@@ -127,36 +117,42 @@ struct CalibrationView: View {
     // MARK: - Phase 2: Face found — user decides when to start
 
     private var faceFoundView: some View {
-        VStack(spacing: 20) {
-            Spacer()
-
-            Image(systemName: "face.smiling.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.green)
-
-            Text("Found you!")
-                .font(.title.bold())
-                .foregroundStyle(.white)
-
-            Text("Sit up straight with good posture, then tap Start to calibrate.")
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.7))
-                .multilineTextAlignment(.center)
-
-            Spacer()
-
-            Button {
-                orchestrator.startCalibration()
-                startCountdown()
-            } label: {
-                Text("Start calibration")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.green)
+        VStack(spacing: 16) {
+            // Top — found indicator
+            HStack {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Text("Face detected")
+                    .font(.subheadline.bold())
                     .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: Capsule())
+            .padding(.top, 60)
+
+            Spacer()
+
+            // Bottom — instruction + button
+            VStack(spacing: 12) {
+                Text("Sit up straight, then tap Start")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+
+                Button {
+                    orchestrator.startCalibration()
+                    startCountdown()
+                } label: {
+                    Text("Start calibration")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.green)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+            }
+            .padding(.bottom, 20)
         }
     }
 
@@ -283,5 +279,64 @@ struct CalibrationView: View {
     private func cleanup() {
         timer?.invalidate()
         timer = nil
+    }
+}
+
+// MARK: - Face Tracking Overlay
+
+/// Draws a rounded rectangle that follows the detected face in real-time.
+/// Proves to the user that face detection is working.
+struct FaceTrackingOverlay: View {
+    @ObservedObject var orchestrator: SessionOrchestrator
+
+    var body: some View {
+        GeometryReader { geo in
+            let size = geo.size
+
+            if let face = orchestrator.faceDetector.faceLandmarks {
+                let rect = LandmarkMath.scale(face.boundingBox, to: size)
+
+                // Face bounding box
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(.green, lineWidth: 3)
+                    .frame(width: rect.width * 1.2, height: rect.height * 1.2)
+                    .position(x: rect.midX, y: rect.midY)
+                    .animation(.easeOut(duration: 0.1), value: rect.midX)
+                    .animation(.easeOut(duration: 0.1), value: rect.midY)
+
+                // Corner brackets for a "scan" feel
+                ForEach(corners(of: rect), id: \.0) { corner in
+                    CornerBracket(position: corner.1, angle: corner.2)
+                }
+            }
+        }
+    }
+
+    private func corners(of rect: CGRect) -> [(Int, CGPoint, Double)] {
+        let inset: CGFloat = rect.width * 0.1
+        return [
+            (0, CGPoint(x: rect.minX - inset, y: rect.minY - inset), 0),
+            (1, CGPoint(x: rect.maxX + inset, y: rect.minY - inset), 90),
+            (2, CGPoint(x: rect.maxX + inset, y: rect.maxY + inset), 180),
+            (3, CGPoint(x: rect.minX - inset, y: rect.maxY + inset), 270),
+        ]
+    }
+}
+
+struct CornerBracket: View {
+    let position: CGPoint
+    let angle: Double
+    private let length: CGFloat = 20
+
+    var body: some View {
+        Canvas { context, _ in
+            var path = Path()
+            path.move(to: CGPoint(x: 0, y: length))
+            path.addLine(to: .zero)
+            path.addLine(to: CGPoint(x: length, y: 0))
+            context.translateBy(x: position.x, y: position.y)
+            context.rotate(by: .degrees(angle))
+            context.stroke(path, with: .color(.green), lineWidth: 3)
+        }
     }
 }
