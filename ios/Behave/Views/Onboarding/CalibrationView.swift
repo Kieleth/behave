@@ -1,39 +1,40 @@
 import SwiftUI
 import AVFoundation
 
-/// Calibration flow — user sits with good posture, app auto-captures snapshots.
-/// Shows camera preview so user can see their positioning.
+/// Calibration flow:
+/// 1. Start camera + detectors immediately
+/// 2. Wait until face is detected → "Got you!"
+/// 3. Auto-countdown 3-2-1
+/// 4. Auto-capture 5 snapshots
+/// 5. Done → "Locked in"
 struct CalibrationView: View {
     @ObservedObject var orchestrator: SessionOrchestrator
     @Environment(\.dismiss) private var dismiss
-    @State private var phase: CalibrationPhase = .instructions
+    @State private var phase: Phase = .detecting
     @State private var countdown: Int = 3
     @State private var timer: Timer?
+    @State private var detectionCheckTimer: Timer?
 
-    enum CalibrationPhase {
-        case instructions
-        case countdown
-        case capturing
+    enum Phase {
+        case detecting   // waiting for face
+        case countdown   // 3-2-1
+        case capturing   // auto-capturing snapshots
         case done
     }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // Camera preview background
-                if phase != .instructions {
-                    CameraPreviewView(session: orchestrator.camera.session)
-                        .ignoresSafeArea()
+                // Camera preview
+                CameraPreviewView(session: orchestrator.camera.session)
+                    .ignoresSafeArea()
 
-                    // Dim overlay so text is readable
-                    Color.black.opacity(0.4)
-                        .ignoresSafeArea()
-                }
+                Color.black.opacity(0.4).ignoresSafeArea()
 
                 VStack(spacing: 24) {
                     switch phase {
-                    case .instructions:
-                        instructionsView
+                    case .detecting:
+                        detectingView
                     case .countdown:
                         countdownView
                     case .capturing:
@@ -49,66 +50,80 @@ struct CalibrationView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
-                        timer?.invalidate()
+                        cleanup()
                         dismiss()
                     }
                 }
             }
+            .onAppear {
+                // Start detectors immediately
+                orchestrator.startPreview()
+                orchestrator.startCalibration()
+                startDetectionCheck()
+            }
             .onDisappear {
-                timer?.invalidate()
+                cleanup()
             }
         }
     }
 
-    // MARK: - Instructions
+    // MARK: - Phase 1: Detecting
 
-    private var instructionsView: some View {
+    private var detectingView: some View {
         VStack(spacing: 20) {
             Spacer()
 
-            Image(systemName: "figure.stand")
-                .font(.system(size: 64))
-                .foregroundStyle(.blue)
+            ProgressView()
+                .scaleEffect(1.5)
+                .tint(.white)
 
-            Text("Sit up straight")
+            Text("Looking for you...")
                 .font(.title2.bold())
+                .foregroundStyle(.white)
 
-            VStack(alignment: .leading, spacing: 12) {
-                instructionRow("1", "Sit comfortably with good posture")
-                instructionRow("2", "Face the camera, shoulders visible")
-                instructionRow("3", "Hold still for 5 seconds")
+            Text("Make sure your face is visible in the camera")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.7))
+                .multilineTextAlignment(.center)
+
+            // Live detection status
+            VStack(alignment: .leading, spacing: 8) {
+                detectionRow("Face", detected: orchestrator.faceDetector.faceLandmarks != nil)
+                detectionRow("Body", detected: orchestrator.poseDetector.bodyLandmarks != nil)
             }
             .padding()
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
 
             Spacer()
+        }
+    }
 
-            Button {
+    private func detectionRow(_ label: String, detected: Bool) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: detected ? "checkmark.circle.fill" : "circle.dotted")
+                .foregroundStyle(detected ? .green : .gray)
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(.white)
+            Spacer()
+            Text(detected ? "Detected" : "Searching...")
+                .font(.caption)
+                .foregroundStyle(detected ? .green : .gray)
+        }
+    }
+
+    private func startDetectionCheck() {
+        // Poll every 0.3s to see if we can detect the user
+        detectionCheckTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { _ in
+            if orchestrator.isUserDetected {
+                detectionCheckTimer?.invalidate()
+                detectionCheckTimer = nil
                 startCountdown()
-            } label: {
-                Text("I'm ready")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.blue)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
             }
         }
     }
 
-    private func instructionRow(_ number: String, _ text: String) -> some View {
-        HStack(spacing: 12) {
-            Text(number)
-                .font(.headline)
-                .foregroundStyle(.white)
-                .frame(width: 28, height: 28)
-                .background(.blue, in: Circle())
-            Text(text)
-                .font(.subheadline)
-        }
-    }
-
-    // MARK: - Countdown
+    // MARK: - Phase 2: Countdown
 
     private var countdownView: some View {
         VStack(spacing: 20) {
@@ -118,7 +133,7 @@ struct CalibrationView: View {
                 .font(.system(size: 96, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
 
-            Text("Get into position...")
+            Text("Hold good posture!")
                 .font(.title3)
                 .foregroundStyle(.white.opacity(0.8))
 
@@ -127,9 +142,6 @@ struct CalibrationView: View {
     }
 
     private func startCountdown() {
-        // Start camera + detectors for calibration (no full session)
-        orchestrator.startPreview()
-        orchestrator.startCalibration()
         phase = .countdown
         countdown = 3
 
@@ -143,7 +155,7 @@ struct CalibrationView: View {
         }
     }
 
-    // MARK: - Capturing
+    // MARK: - Phase 3: Capturing
 
     private var capturingView: some View {
         VStack(spacing: 20) {
@@ -151,7 +163,6 @@ struct CalibrationView: View {
 
             let progress = Double(orchestrator.calibrationSnapshots.count) / Double(orchestrator.calibrationTarget)
 
-            // Pulsing ring
             ZStack {
                 Circle()
                     .stroke(.white.opacity(0.3), lineWidth: 4)
@@ -162,6 +173,7 @@ struct CalibrationView: View {
                     .stroke(.green, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                     .frame(width: 120, height: 120)
                     .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 0.3), value: progress)
 
                 VStack(spacing: 4) {
                     Text("\(orchestrator.calibrationSnapshots.count)")
@@ -173,13 +185,9 @@ struct CalibrationView: View {
                 }
             }
 
-            Text("Hold still...")
+            Text("Capturing...")
                 .font(.title3)
                 .foregroundStyle(.white)
-
-            Text("Capturing your baseline posture")
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.6))
 
             Spacer()
         }
@@ -188,8 +196,7 @@ struct CalibrationView: View {
     private func startAutoCapture() {
         phase = .capturing
 
-        // Auto-capture every 0.5 seconds
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
             orchestrator.captureCalibrationSnapshot()
             if orchestrator.isCalibrated {
                 timer?.invalidate()
@@ -198,7 +205,7 @@ struct CalibrationView: View {
         }
     }
 
-    // MARK: - Done
+    // MARK: - Phase 4: Done
 
     private var doneView: some View {
         VStack(spacing: 20) {
@@ -212,7 +219,7 @@ struct CalibrationView: View {
                 .font(.title.bold())
                 .foregroundStyle(.white)
 
-            Text("Your baseline posture is saved. Behave will alert you when you deviate from it.")
+            Text("Your baseline posture is saved. Behave will alert you when you deviate.")
                 .foregroundStyle(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
 
@@ -230,5 +237,14 @@ struct CalibrationView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14))
             }
         }
+    }
+
+    // MARK: - Cleanup
+
+    private func cleanup() {
+        timer?.invalidate()
+        timer = nil
+        detectionCheckTimer?.invalidate()
+        detectionCheckTimer = nil
     }
 }

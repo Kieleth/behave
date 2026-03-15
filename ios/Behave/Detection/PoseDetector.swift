@@ -45,6 +45,29 @@ struct BodyLandmarks {
     /// All available points for rendering skeleton
     let allPoints: [VNHumanBodyPoseObservation.JointName: CGPoint]
 
+    /// Fallback init from face-estimated positions (when body pose isn't detected).
+    init(nose: CGPoint?, leftShoulder: CGPoint?, rightShoulder: CGPoint?) {
+        self.nose = nose
+        self.neck = nil
+        self.leftShoulder = leftShoulder
+        self.rightShoulder = rightShoulder
+        self.leftElbow = nil
+        self.rightElbow = nil
+        self.leftWrist = nil
+        self.rightWrist = nil
+        self.leftHip = nil
+        self.rightHip = nil
+        self.leftEar = nil
+        self.rightEar = nil
+        self.leftEye = nil
+        self.rightEye = nil
+        var all: [VNHumanBodyPoseObservation.JointName: CGPoint] = [:]
+        if let n = nose { all[.nose] = n }
+        if let ls = leftShoulder { all[.leftShoulder] = ls }
+        if let rs = rightShoulder { all[.rightShoulder] = rs }
+        self.allPoints = all
+    }
+
     init(from observation: VNHumanBodyPoseObservation) {
         let points = try? observation.recognizedPoints(.all)
 

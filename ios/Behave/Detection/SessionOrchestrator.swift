@@ -279,15 +279,39 @@ final class SessionOrchestrator: ObservableObject {
     // MARK: - Calibration (auto-adjust protocol)
 
     @Published var calibrationSnapshots: [BodyLandmarks] = []
-    let calibrationTarget = 10
+    let calibrationTarget = 5  // reduced — 5 snapshots is enough
+
+    /// Whether the detectors can see the user at all.
+    var isUserDetected: Bool {
+        faceDetector.faceLandmarks != nil || poseDetector.bodyLandmarks != nil
+    }
 
     func startCalibration() {
         calibrationSnapshots = []
     }
 
     func captureCalibrationSnapshot() {
-        guard let landmarks = poseDetector.bodyLandmarks else { return }
-        calibrationSnapshots.append(landmarks)
+        // Try body pose first (best calibration data)
+        if let landmarks = poseDetector.bodyLandmarks {
+            calibrationSnapshots.append(landmarks)
+        }
+        // Fallback: build BodyLandmarks from face data
+        // (face nose position + estimated shoulder positions)
+        else if let face = faceDetector.faceLandmarks, let nose = face.nose?.first {
+            let box = face.boundingBox
+            // Estimate shoulder positions from face bounding box
+            let shoulderY = box.maxY + box.height * 0.6
+            let leftShoulder = CGPoint(x: box.minX - box.width * 0.3, y: shoulderY)
+            let rightShoulder = CGPoint(x: box.maxX + box.width * 0.3, y: shoulderY)
+            let nosePoint = CGPoint(x: box.midX, y: nose.y)
+
+            let fallback = BodyLandmarks(
+                nose: nosePoint,
+                leftShoulder: leftShoulder,
+                rightShoulder: rightShoulder
+            )
+            calibrationSnapshots.append(fallback)
+        }
 
         if calibrationSnapshots.count >= calibrationTarget {
             calibration = PostureClassifier.calibrate(from: calibrationSnapshots)
