@@ -21,7 +21,7 @@ final class SessionOrchestrator: ObservableObject {
     private let postureClassifier = PostureClassifier()
     private let expressionClassifier = ExpressionClassifier()
     private var habitClassifier = HabitClassifier()
-    private let speechClassifier = SpeechClassifier()
+    private var speechClassifier = SpeechClassifier()
 
     // Enforcer
     let enforcement = EnforcementEngine()
@@ -37,6 +37,8 @@ final class SessionOrchestrator: ObservableObject {
 
     // Last classification results (for debug/visual feedback)
     @Published var lastPostureResult: PostureClassifier.Result?
+    @Published var lastExpressionResult: ExpressionClassifier.Result?
+    @Published var lastSpeechResult: SpeechClassifier.Result?
     @Published var lastHabitDetails: String = ""
 
     // Session tracking
@@ -242,6 +244,7 @@ final class SessionOrchestrator: ObservableObject {
         let expressionResult = faceDetector.faceLandmarks.map {
             expressionClassifier.classify(faceLandmarks: $0)
         }
+        lastExpressionResult = expressionResult
 
         // Store for debug overlay
         lastPostureResult = postureResult
@@ -256,6 +259,7 @@ final class SessionOrchestrator: ObservableObject {
             words: speechDetector.recentWords,
             sessionDurationSeconds: sessionDuration
         )
+        lastSpeechResult = speechResult
 
         enforcement.process(
             posture: postureResult,

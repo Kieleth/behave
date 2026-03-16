@@ -19,7 +19,7 @@ struct SessionView: View {
                         // Detection overlays (hidden during breaks and calibration)
                         if !orchestrator.isPausedForBreak {
                             DetectionOverlay(orchestrator: orchestrator)
-                            PostureFeedbackOverlay(orchestrator: orchestrator)
+                            BehaviorFeedbackOverlay(orchestrator: orchestrator)
                         }
 
                 // Break overlay
@@ -167,6 +167,22 @@ struct DebugOverlay: View {
 
             Text("Cal: \(orchestrator.isCalibrated ? "YES" : "NO")")
 
+            // Expression/gaze debug
+            if let e = orchestrator.lastExpressionResult {
+                Text("Eyes: \(f2(e.eyeOpenness)) \(e.isSquinting ? "SQUINT" : "") \(e.gazeDirection.rawValue)")
+                    .foregroundStyle(e.isLookingAway ? .orange : .white)
+            }
+
+            // Speech debug
+            if let s = orchestrator.lastSpeechResult {
+                let speaking = s.isSpeaking ? "SPEAKING" : "silent"
+                Text("Speech: \(speaking) \(Int(s.wordsPerMinute))wpm")
+                    .foregroundStyle(s.isSpeaking ? .cyan : .white)
+                if s.shouldBreathe {
+                    Text("  BREATHE!").foregroundStyle(.red).bold()
+                }
+            }
+
             // Habit debug
             if !orchestrator.lastHabitDetails.isEmpty {
                 Text("Habits: \(orchestrator.lastHabitDetails)")
@@ -183,31 +199,78 @@ struct DebugOverlay: View {
     private func f2(_ v: Double) -> String { String(format: "%.2f", v) }
 }
 
-// MARK: - Posture Visual Feedback
+// MARK: - Behavioral Feedback Overlay
 
-struct PostureFeedbackOverlay: View {
+struct BehaviorFeedbackOverlay: View {
     @ObservedObject var orchestrator: SessionOrchestrator
 
     var body: some View {
-        VStack {
+        VStack(spacing: 8) {
             Spacer()
 
+            // Breathing reminder (highest priority — show first)
+            if let s = orchestrator.lastSpeechResult, s.shouldBreathe {
+                feedbackBanner(
+                    icon: "wind",
+                    text: s.continuousSpeakingSeconds > 30 ? "Pause and breathe" : "Breathe before speaking",
+                    color: .blue
+                )
+            }
+
+            // Gaze — only while speaking
+            if let e = orchestrator.lastExpressionResult, let s = orchestrator.lastSpeechResult,
+               s.isSpeaking && e.isLookingAway {
+                feedbackBanner(
+                    icon: "eye.slash",
+                    text: "Look at the screen",
+                    color: .orange
+                )
+            }
+
+            // Squinting — only while speaking
+            if let e = orchestrator.lastExpressionResult, let s = orchestrator.lastSpeechResult,
+               s.isSpeaking && e.isSquinting {
+                feedbackBanner(
+                    icon: "eye.trianglebadge.exclamationmark",
+                    text: "Relax your eyes",
+                    color: .yellow
+                )
+            }
+
+            // Posture
             if let p = orchestrator.lastPostureResult, !p.isGood {
-                HStack(spacing: 8) {
-                    Image(systemName: "figure.stand")
-                        .font(.title3)
-                    Text(p.details.capitalized)
-                        .font(.subheadline.bold())
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(.red.opacity(0.85), in: Capsule())
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-                .padding(.bottom, 100)
+                feedbackBanner(
+                    icon: "figure.stand",
+                    text: p.details.capitalized,
+                    color: .red
+                )
+            }
+
+            // Habits
+            if orchestrator.lastHabitDetails != "No habits detected" && !orchestrator.lastHabitDetails.isEmpty {
+                feedbackBanner(
+                    icon: "hand.raised",
+                    text: orchestrator.lastHabitDetails.capitalized,
+                    color: .purple
+                )
             }
         }
+        .padding(.bottom, 100)
         .animation(.easeInOut(duration: 0.3), value: orchestrator.lastPostureResult?.isGood)
+        .animation(.easeInOut(duration: 0.3), value: orchestrator.lastExpressionResult?.isLookingAway)
+        .animation(.easeInOut(duration: 0.3), value: orchestrator.lastSpeechResult?.shouldBreathe)
+    }
+
+    private func feedbackBanner(icon: String, text: String, color: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon).font(.subheadline)
+            Text(text).font(.subheadline.bold())
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+        .background(color.opacity(0.85), in: Capsule())
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 }
 
