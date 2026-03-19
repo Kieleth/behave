@@ -44,15 +44,22 @@ struct SessionView: View {
             // HUD (hidden during calibration)
             if !showCalibration {
                 VStack(spacing: 0) {
-                    if orchestrator.isActive {
-                        HStack {
-                            StatusBar(orchestrator: orchestrator)
-                            Spacer()
-                            PomodoroOverlay(pomodoro: orchestrator.pomodoro)
+                        if orchestrator.isActive {
+                            HStack {
+                                StatusBar(orchestrator: orchestrator)
+                                Spacer()
+                                PomodoroOverlay(pomodoro: orchestrator.pomodoro)
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 8)
+
+                            HStack {
+                                BodyTrackingBadge(orchestrator: orchestrator)
+                                Spacer()
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 4)
                         }
-                        .padding(.horizontal)
-                        .padding(.top, 8)
-                    }
 
                     // Debug
                     HStack {
@@ -227,14 +234,9 @@ struct BehaviorFeedbackOverlay: View {
                 )
             }
 
-            // Squinting — only while speaking
-            if let e = orchestrator.lastExpressionResult, let s = orchestrator.lastSpeechResult,
-               s.isSpeaking && e.isSquinting {
-                feedbackBanner(
-                    icon: "eye.trianglebadge.exclamationmark",
-                    text: "Relax your eyes",
-                    color: .yellow
-                )
+            // Squinting — coaching card (not just while speaking — this is a general habit)
+            if let e = orchestrator.lastExpressionResult, e.isSquinting {
+                squintingCoachingCard
             }
 
             // Posture
@@ -259,6 +261,55 @@ struct BehaviorFeedbackOverlay: View {
         .animation(.easeInOut(duration: 0.3), value: orchestrator.lastPostureResult?.isGood)
         .animation(.easeInOut(duration: 0.3), value: orchestrator.lastExpressionResult?.isLookingAway)
         .animation(.easeInOut(duration: 0.3), value: orchestrator.lastSpeechResult?.shouldBreathe)
+    }
+
+    /// Stanford physiological sigh coaching card for squinting
+    private var squintingCoachingCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "eye.trianglebadge.exclamationmark")
+                    .foregroundStyle(.yellow)
+                Text("You're squinting")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.white)
+            }
+
+            Text("Your body is manifesting tension through your eyes. Try a physiological sigh:")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.8))
+
+            VStack(alignment: .leading, spacing: 4) {
+                breathStep("1", "Double inhale through your nose (short + deep)")
+                breathStep("2", "Long slow exhale through your mouth")
+                breathStep("3", "Repeat 2-3 times")
+            }
+
+            Text("This activates your parasympathetic nervous system and releases tension within seconds.")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.5))
+                .italic()
+
+            Text("Huberman Lab, Stanford School of Medicine")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.3))
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.black.opacity(0.85), in: RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal, 16)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    private func breathStep(_ num: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(num)
+                .font(.caption.bold())
+                .foregroundStyle(.yellow)
+                .frame(width: 16)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.9))
+        }
     }
 
     private func feedbackBanner(icon: String, text: String, color: Color) -> some View {
@@ -352,17 +403,14 @@ struct SkeletonView: View {
         Canvas { context, _ in
             let points = landmarks.allPoints.mapValues { LandmarkMath.visionToScreen($0, screenSize: size, imageAspect: imageAspect) }
 
-            for (_, point) in points {
-                let rect = CGRect(x: point.x - 4, y: point.y - 4, width: 8, height: 8)
-                context.fill(Path(ellipseIn: rect), with: .color(color))
-            }
-
+            // Draw bone connections with thicker lines
             let connections: [(VNHumanBodyPoseObservation.JointName, VNHumanBodyPoseObservation.JointName)] = [
                 (.nose, .neck),
                 (.neck, .leftShoulder), (.neck, .rightShoulder),
                 (.leftShoulder, .leftElbow), (.leftElbow, .leftWrist),
                 (.rightShoulder, .rightElbow), (.rightElbow, .rightWrist),
                 (.neck, .leftHip), (.neck, .rightHip),
+                (.leftHip, .rightHip),
             ]
 
             for (from, to) in connections {
@@ -370,10 +418,73 @@ struct SkeletonView: View {
                     var path = Path()
                     path.move(to: p1)
                     path.addLine(to: p2)
-                    context.stroke(path, with: .color(color.opacity(0.6)), lineWidth: 2)
+                    context.stroke(path, with: .color(color.opacity(0.7)), lineWidth: 3)
                 }
             }
+
+            // Draw shoulder line prominently (thick, dashed when tilted)
+            if let ls = points[.leftShoulder], let rs = points[.rightShoulder] {
+                var shoulderPath = Path()
+                shoulderPath.move(to: ls)
+                shoulderPath.addLine(to: rs)
+                context.stroke(shoulderPath, with: .color(color), style: StrokeStyle(lineWidth: 4, lineCap: .round))
+
+                // Shoulder dots (larger)
+                for p in [ls, rs] {
+                    let rect = CGRect(x: p.x - 8, y: p.y - 8, width: 16, height: 16)
+                    context.fill(Path(ellipseIn: rect), with: .color(color))
+                    let inner = CGRect(x: p.x - 4, y: p.y - 4, width: 8, height: 8)
+                    context.fill(Path(ellipseIn: inner), with: .color(.white))
+                }
+            }
+
+            // Draw joints
+            for (name, point) in points where name != .leftShoulder && name != .rightShoulder {
+                let rect = CGRect(x: point.x - 5, y: point.y - 5, width: 10, height: 10)
+                context.fill(Path(ellipseIn: rect), with: .color(color))
+            }
+
+            // Head marker (nose = head position)
+            if let nose = points[.nose] {
+                let headRect = CGRect(x: nose.x - 10, y: nose.y - 10, width: 20, height: 20)
+                context.stroke(Path(ellipseIn: headRect), with: .color(color), lineWidth: 2)
+            }
+
+            // Spine line: nose → neck → hip center (shows alignment)
+            if let nose = points[.nose], let neck = points[.neck] {
+                var spinePath = Path()
+                spinePath.move(to: nose)
+                spinePath.addLine(to: neck)
+                if let lh = points[.leftHip], let rh = points[.rightHip] {
+                    let hipCenter = CGPoint(x: (lh.x + rh.x) / 2, y: (lh.y + rh.y) / 2)
+                    spinePath.addLine(to: hipCenter)
+                }
+                context.stroke(spinePath, with: .color(color.opacity(0.5)),
+                              style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+            }
         }
+    }
+}
+
+// MARK: - Body Tracking Status Badge
+
+struct BodyTrackingBadge: View {
+    @ObservedObject var orchestrator: SessionOrchestrator
+
+    var body: some View {
+        let hasBody = orchestrator.poseDetector.bodyLandmarks != nil
+        let jointCount = orchestrator.poseDetector.bodyLandmarks?.allPoints.count ?? 0
+
+        HStack(spacing: 6) {
+            Image(systemName: hasBody ? "figure.arms.open" : "figure.stand")
+                .foregroundStyle(hasBody ? .green : .gray)
+            Text(hasBody ? "Body: \(jointCount) pts" : "Face only")
+                .font(.caption2)
+                .foregroundStyle(hasBody ? .green : .gray)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(.ultraThinMaterial, in: Capsule())
     }
 }
 
