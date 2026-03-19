@@ -19,7 +19,7 @@ final class SessionOrchestrator: ObservableObject {
 
     // Classifiers
     private let postureClassifier = PostureClassifier()
-    private let expressionClassifier = ExpressionClassifier()
+    private var expressionClassifier = ExpressionClassifier()
     private var habitClassifier = HabitClassifier()
     private var speechClassifier = SpeechClassifier()
 

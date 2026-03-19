@@ -8,7 +8,7 @@ struct ExpressionClassifier {
         let dominantExpression: Expression
         let tension: Double            // 0-1 tension score
         let eyeOpenness: Double        // 0 = closed, 1 = fully open
-        let isSquinting: Bool          // intense focus squint
+        let isSquinting: Bool          // sustained tension squint (not a blink)
         let isLookingAway: Bool        // not looking at screen
         let gazeDirection: GazeDirection
         let details: String
@@ -23,11 +23,24 @@ struct ExpressionClassifier {
     }
 
     /// Thresholds
-    var squintThreshold: Double = 0.15     // EAR below this = squinting
+    var squintThreshold: Double = 0.15     // EAR below this = potential squint
     var closedThreshold: Double = 0.08     // EAR below this = eyes closed
     var gazeOffsetThreshold: Double = 0.15 // face center offset from screen center
 
-    func classify(faceLandmarks face: FaceLandmarks) -> Result {
+    // Squinting temporal state — distinguishes blinks from sustained squinting
+    private var squintFrameCount: Int = 0      // consecutive frames of low EAR
+    private var squintEpisodes: Int = 0        // number of squint episodes in window
+    private var openFrameCount: Int = 0        // consecutive frames of normal EAR
+    private var lastSquintReportTime: Date = .distantPast
+
+    /// Require 4+ consecutive squint frames (~1.2s at 10fps after frame skip)
+    /// OR 3+ squint episodes within recent frames (on-off-on pattern)
+    private let sustainedSquintFrames = 4
+    private let repeatedSquintEpisodes = 3
+    /// Cooldown: don't re-trigger for 10s after showing coaching card
+    private let squintCooldownSeconds: Double = 10
+
+    mutating func classify(faceLandmarks face: FaceLandmarks) -> Result {
         guard let leftEyebrow = face.leftEyebrow,
               let rightEyebrow = face.rightEyebrow,
               let leftEye = face.leftEye,
@@ -42,8 +55,43 @@ struct ExpressionClassifier {
         let rightEAR = eyeAspectRatio(rightEye)
         let avgEAR = (leftEAR + rightEAR) / 2
         let eyeOpenness = min(1.0, avgEAR / 0.3)  // normalize: 0.3 EAR = fully open
-        let isSquinting = avgEAR < squintThreshold && avgEAR >= closedThreshold
+        let rawSquinting = avgEAR < squintThreshold && avgEAR >= closedThreshold
         let eyesClosed = avgEAR < closedThreshold
+
+        // --- Temporal squint detection ---
+        // Blinks: quick (1-3 frames), then eyes open. Not squinting.
+        // Sustained squint: 4+ frames with low EAR. IS squinting.
+        // Repeated pattern: squint, open briefly, squint again. IS squinting.
+        let isSquinting: Bool
+        if rawSquinting || eyesClosed {
+            squintFrameCount += 1
+            if openFrameCount > 0 && openFrameCount < 6 {
+                // Was briefly open then squinted again — count as episode
+                squintEpisodes += 1
+            }
+            openFrameCount = 0
+        } else {
+            if squintFrameCount > 0 {
+                openFrameCount += 1
+            }
+            if openFrameCount > 10 {
+                // Eyes open for a while — reset everything
+                squintFrameCount = 0
+                squintEpisodes = 0
+                openFrameCount = 0
+            }
+        }
+
+        let cooldownOk = Date().timeIntervalSince(lastSquintReportTime) > squintCooldownSeconds
+        let sustained = squintFrameCount >= sustainedSquintFrames
+        let repeated = squintEpisodes >= repeatedSquintEpisodes
+
+        if (sustained || repeated) && cooldownOk {
+            isSquinting = true
+            if sustained { lastSquintReportTime = Date() }
+        } else {
+            isSquinting = false
+        }
 
         // --- Gaze Direction ---
         let faceCenter = CGPoint(x: face.boundingBox.midX, y: face.boundingBox.midY)

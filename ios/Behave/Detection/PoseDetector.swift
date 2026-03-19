@@ -71,22 +71,25 @@ struct BodyLandmarks {
     init(from observation: VNHumanBodyPoseObservation) {
         let points = try? observation.recognizedPoints(.all)
 
-        func point(for joint: VNHumanBodyPoseObservation.JointName) -> CGPoint? {
-            guard let p = points?[joint], p.confidence > 0.3 else { return nil }
-            // Flip X for front-camera mirror, Y is already top-down with .right orientation
+        // Lower threshold for shoulders/neck (often partially visible at desk)
+        let lowConfidence: Float = 0.1
+        let normalConfidence: Float = 0.3
+
+        func point(for joint: VNHumanBodyPoseObservation.JointName, minConfidence: Float = normalConfidence) -> CGPoint? {
+            guard let p = points?[joint], p.confidence > minConfidence else { return nil }
             return CGPoint(x: 1 - p.location.x, y: p.location.y)
         }
 
         self.nose = point(for: .nose)
-        self.neck = point(for: .neck)
-        self.leftShoulder = point(for: .leftShoulder)
-        self.rightShoulder = point(for: .rightShoulder)
+        self.neck = point(for: .neck, minConfidence: lowConfidence)
+        self.leftShoulder = point(for: .leftShoulder, minConfidence: lowConfidence)
+        self.rightShoulder = point(for: .rightShoulder, minConfidence: lowConfidence)
         self.leftElbow = point(for: .leftElbow)
         self.rightElbow = point(for: .rightElbow)
         self.leftWrist = point(for: .leftWrist)
         self.rightWrist = point(for: .rightWrist)
-        self.leftHip = point(for: .leftHip)
-        self.rightHip = point(for: .rightHip)
+        self.leftHip = point(for: .leftHip, minConfidence: lowConfidence)
+        self.rightHip = point(for: .rightHip, minConfidence: lowConfidence)
         self.leftEar = point(for: .leftEar)
         self.rightEar = point(for: .rightEar)
         self.leftEye = point(for: .leftEye)
@@ -94,7 +97,7 @@ struct BodyLandmarks {
 
         var all: [VNHumanBodyPoseObservation.JointName: CGPoint] = [:]
         if let pts = points {
-            for (name, recognized) in pts where recognized.confidence > 0.3 {
+            for (name, recognized) in pts where recognized.confidence > lowConfidence {
                 all[name] = CGPoint(x: 1 - recognized.location.x, y: recognized.location.y)
             }
         }
