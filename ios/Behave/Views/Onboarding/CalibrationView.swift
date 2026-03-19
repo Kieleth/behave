@@ -23,10 +23,24 @@ struct CalibrationOverlay: View {
             // Semi-transparent background
             Color.black.opacity(0.3).ignoresSafeArea()
 
-            // Face tracking overlay during detection phases
-            if phase == .detecting || phase == .faceFound {
-                FaceTrackingOverlay(orchestrator: orchestrator)
-                    .ignoresSafeArea()
+            // Face tracking + inferred skeleton (visible in all phases except done)
+            if phase != .done {
+                GeometryReader { geo in
+                    let size = geo.size
+                    let imgAspect = orchestrator.camera.imageAspectRatio
+
+                    FaceTrackingOverlay(orchestrator: orchestrator)
+
+                    if let face = orchestrator.faceDetector.faceLandmarks {
+                        InferredSkeletonView(
+                            face: face,
+                            screenSize: size,
+                            imageAspect: imgAspect,
+                            status: orchestrator.isCalibrated ? orchestrator.enforcement.postureStatus : .ok
+                        )
+                    }
+                }
+                .ignoresSafeArea()
             }
 
             VStack(spacing: 24) {
