@@ -339,7 +339,12 @@ struct DetectionOverlay: View {
                 SkeletonView(landmarks: body, size: size, imageAspect: imgAspect, status: orchestrator.enforcement.postureStatus)
             } else if let face = orchestrator.faceDetector.faceLandmarks {
                 // Inferred skeleton when body pose not available
-                InferredSkeletonView(face: face, screenSize: size, imageAspect: imgAspect, status: orchestrator.enforcement.postureStatus)
+                InferredSkeletonView(
+                    face: face, screenSize: size, imageAspect: imgAspect,
+                    status: orchestrator.enforcement.postureStatus,
+                    taughtLeftShoulder: orchestrator.taughtLeftShoulder,
+                    taughtRightShoulder: orchestrator.taughtRightShoulder
+                )
             }
 
             if let face = orchestrator.faceDetector.faceLandmarks {

@@ -9,14 +9,20 @@ struct CalibrationOverlay: View {
     @State private var phase: Phase = .detecting
     @State private var countdown: Int = 3
     @State private var timer: Timer?
+    @State private var taughtLeftShoulder: CGPoint?
+    @State private var taughtRightShoulder: CGPoint?
+    @State private var tappingShoulder: ShoulderSide = .left
 
     enum Phase {
         case detecting
         case faceFound
+        case shoulderTap    // user taps shoulder positions
         case countdown
         case capturing
         case done
     }
+
+    enum ShoulderSide { case left, right }
 
     var body: some View {
         ZStack {
@@ -36,7 +42,9 @@ struct CalibrationOverlay: View {
                             face: face,
                             screenSize: size,
                             imageAspect: imgAspect,
-                            status: orchestrator.isCalibrated ? orchestrator.enforcement.postureStatus : .ok
+                            status: orchestrator.isCalibrated ? orchestrator.enforcement.postureStatus : .ok,
+                            taughtLeftShoulder: taughtLeftShoulder,
+                            taughtRightShoulder: taughtRightShoulder
                         )
                     }
                 }
@@ -64,6 +72,8 @@ struct CalibrationOverlay: View {
                     detectingView
                 case .faceFound:
                     faceFoundView
+                case .shoulderTap:
+                    shoulderTapView
                 case .countdown:
                     countdownView
                 case .capturing:
@@ -132,10 +142,10 @@ struct CalibrationOverlay: View {
                     .foregroundStyle(.white)
 
                 Button {
-                    orchestrator.startCalibration()
-                    startCountdown()
+                    tappingShoulder = .left
+                    phase = .shoulderTap
                 } label: {
-                    Text("Start calibration")
+                    Text("Set up shoulders")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -146,6 +156,90 @@ struct CalibrationOverlay: View {
                 .padding(.horizontal, 32)
             }
             .padding(.bottom, 40)
+        }
+    }
+
+    // MARK: - Shoulder Tap
+
+    private var shoulderTapView: some View {
+        GeometryReader { geo in
+            let size = geo.size
+
+            VStack(spacing: 16) {
+                HStack {
+                    Image(systemName: "hand.tap.fill").foregroundStyle(.cyan)
+                    Text(tappingShoulder == .left ? "Tap your LEFT shoulder" : "Tap your RIGHT shoulder")
+                        .font(.subheadline.bold()).foregroundStyle(.white)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial, in: Capsule())
+                .padding(.top, 60)
+
+                Spacer()
+
+                Text("Tap on the ball of your shoulder joint")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.6))
+
+                Button("Skip") {
+                    orchestrator.startCalibration()
+                    startCountdown()
+                }
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.4))
+                .padding(.bottom, 40)
+            }
+
+            // Tap indicator dots (show where user tapped)
+            if let ls = taughtLeftShoulder {
+                let p = LandmarkMath.visionToScreen(ls, screenSize: size, imageAspect: orchestrator.camera.imageAspectRatio)
+                Circle().fill(.cyan).frame(width: 20, height: 20).position(p)
+                Text("L").font(.caption2.bold()).foregroundStyle(.white).position(p)
+            }
+            if let rs = taughtRightShoulder {
+                let p = LandmarkMath.visionToScreen(rs, screenSize: size, imageAspect: orchestrator.camera.imageAspectRatio)
+                Circle().fill(.cyan).frame(width: 20, height: 20).position(p)
+                Text("R").font(.caption2.bold()).foregroundStyle(.white).position(p)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { location in
+            handleShoulderTap(location)
+        }
+    }
+
+    private func handleShoulderTap(_ screenPoint: CGPoint) {
+        // Convert screen tap to Vision normalized coordinates (reverse of visionToScreen)
+        let size = UIScreen.main.bounds.size
+        let imgAspect = orchestrator.camera.imageAspectRatio
+        let screenAspect = size.width / size.height
+
+        let normX: CGFloat
+        let normY: CGFloat
+
+        if imgAspect > screenAspect {
+            let r = imgAspect / screenAspect
+            normX = ((screenPoint.x / size.width) - 0.5) / r + 0.5
+            normY = screenPoint.y / size.height
+        } else {
+            let r = screenAspect / imgAspect
+            normX = screenPoint.x / size.width
+            normY = ((screenPoint.y / size.height) - 0.5) / r + 0.5
+        }
+
+        let visionPoint = CGPoint(x: normX, y: normY)
+
+        if tappingShoulder == .left {
+            taughtLeftShoulder = visionPoint
+            tappingShoulder = .right
+        } else {
+            taughtRightShoulder = visionPoint
+            // Both shoulders set — proceed to calibration
+            orchestrator.taughtLeftShoulder = taughtLeftShoulder
+            orchestrator.taughtRightShoulder = taughtRightShoulder
+            orchestrator.startCalibration()
+            startCountdown()
         }
     }
 

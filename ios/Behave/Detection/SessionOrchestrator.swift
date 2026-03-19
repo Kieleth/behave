@@ -34,6 +34,9 @@ final class SessionOrchestrator: ObservableObject {
     // Calibration
     @Published var calibration = PostureClassifier.Calibration()
     @Published var isCalibrated = false
+    /// User-taught shoulder positions (normalized Vision coords). Set during calibration tap.
+    var taughtLeftShoulder: CGPoint?
+    var taughtRightShoulder: CGPoint?
 
     // Last classification results (for debug/visual feedback)
     @Published var lastPostureResult: PostureClassifier.Result?
