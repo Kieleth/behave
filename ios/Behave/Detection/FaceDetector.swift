@@ -56,6 +56,73 @@ struct FaceLandmarks {
         return CGPoint(x: sumX / CGFloat(lips.count), y: sumY / CGFloat(lips.count))
     }
 
+    // MARK: - Geometry helpers for posture inference
+
+    /// Head roll in degrees from the eye-to-eye line. 0 = level, positive = tilting right.
+    var eyeLineRoll: Double? {
+        guard let le = leftEye, let re = rightEye, !le.isEmpty, !re.isEmpty else { return nil }
+        let lc = centroid(le)
+        let rc = centroid(re)
+        return LandmarkMath.angleDegrees(from: lc, to: rc)
+    }
+
+    /// Nose X offset as fraction of face width. 0 = centered, negative = left, positive = right.
+    var noseOffsetRatio: Double? {
+        guard let nosePts = nose, !nosePts.isEmpty else { return nil }
+        let noseX = nosePts.map(\.x).reduce(0, +) / CGFloat(nosePts.count)
+        return Double(noseX - boundingBox.midX) / Double(boundingBox.width)
+    }
+
+    /// Eye width asymmetry: left eye width / right eye width. 1.0 = symmetric.
+    /// < 1.0 = head turned right (left eye appears smaller).
+    var eyeWidthAsymmetry: Double? {
+        guard let le = leftEye, let re = rightEye, !le.isEmpty, !re.isEmpty else { return nil }
+        let leftW = (le.map(\.x).max() ?? 0) - (le.map(\.x).min() ?? 0)
+        let rightW = (re.map(\.x).max() ?? 0) - (re.map(\.x).min() ?? 0)
+        guard rightW > 0.001 else { return nil }
+        return Double(leftW / rightW)
+    }
+
+    /// Pitch proxy: nose-to-eye-center distance / face height. Larger = looking down.
+    var pitchProxy: Double? {
+        guard let le = leftEye, let re = rightEye, !le.isEmpty, !re.isEmpty,
+              let nosePts = nose, !nosePts.isEmpty else { return nil }
+        let eyeCenter = LandmarkMath.midpoint(centroid(le), centroid(re))
+        let noseTip = nosePts.last ?? nosePts[0]
+        let dist = LandmarkMath.distance(eyeCenter, noseTip)
+        guard boundingBox.height > 0.001 else { return nil }
+        return dist / Double(boundingBox.height)
+    }
+
+    /// Chin point — lowest point on face contour (neck/shoulder anchor).
+    var chinPoint: CGPoint? {
+        guard let contour = faceContour, !contour.isEmpty else {
+            // Fallback: bottom center of bounding box
+            return CGPoint(x: boundingBox.midX, y: boundingBox.maxY)
+        }
+        return contour.max(by: { $0.y < $1.y })
+    }
+
+    /// Left eye center
+    var leftEyeCenter: CGPoint? {
+        guard let le = leftEye, !le.isEmpty else { return nil }
+        return centroid(le)
+    }
+
+    /// Right eye center
+    var rightEyeCenter: CGPoint? {
+        guard let re = rightEye, !re.isEmpty else { return nil }
+        return centroid(re)
+    }
+
+    private func centroid(_ points: [CGPoint]) -> CGPoint {
+        let n = CGFloat(points.count)
+        return CGPoint(
+            x: points.map(\.x).reduce(0, +) / n,
+            y: points.map(\.y).reduce(0, +) / n
+        )
+    }
+
     init(from observation: VNFaceObservation) {
         // Bounding box: flip X for front-camera mirror, no Y flip
         // (empirically determined via diagnostic dots)

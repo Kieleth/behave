@@ -82,7 +82,10 @@ final class SessionOrchestrator: ObservableObject {
                     shoulderAngle: settings.calibrationShoulderAngle,
                     shoulderWidth: settings.calibrationShoulderWidth,
                     faceBBoxHeight: settings.calibrationFaceBBoxHeight,
-                    faceBBoxCenterY: settings.calibrationFaceBBoxCenterY
+                    faceBBoxCenterY: settings.calibrationFaceBBoxCenterY,
+                    faceBBoxCenterX: settings.calibrationFaceCenterX,
+                    calibratedRoll: settings.calibrationRoll,
+                    calibratedNoseOffset: settings.calibrationNoseOffset
                 )
                 isCalibrated = true
             }
@@ -366,6 +369,9 @@ final class SessionOrchestrator: ObservableObject {
         settings.calibrationShoulderWidth = calibration.shoulderWidth
         settings.calibrationFaceBBoxHeight = calibration.faceBBoxHeight
         settings.calibrationFaceBBoxCenterY = calibration.faceBBoxCenterY
+        settings.calibrationFaceCenterX = calibration.faceBBoxCenterX
+        settings.calibrationRoll = calibration.calibratedRoll
+        settings.calibrationNoseOffset = calibration.calibratedNoseOffset
         settings.isCalibrated = true
         try? ctx.save()
     }

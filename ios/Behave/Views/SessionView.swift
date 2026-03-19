@@ -337,6 +337,9 @@ struct DetectionOverlay: View {
 
             if let body = orchestrator.poseDetector.bodyLandmarks {
                 SkeletonView(landmarks: body, size: size, imageAspect: imgAspect, status: orchestrator.enforcement.postureStatus)
+            } else if let face = orchestrator.faceDetector.faceLandmarks {
+                // Inferred skeleton when body pose not available
+                InferredSkeletonView(face: face, screenSize: size, imageAspect: imgAspect, status: orchestrator.enforcement.postureStatus)
             }
 
             if let face = orchestrator.faceDetector.faceLandmarks {
@@ -356,9 +359,6 @@ struct DetectionOverlay: View {
                 }
                 if let outerLips = face.outerLips {
                     FaceLandmarkDots(points: outerLips, size: size, imageAspect: imgAspect, color: .pink)
-                }
-                if let nose = face.nose {
-                    FaceLandmarkDots(points: nose, size: size, imageAspect: imgAspect, color: .yellow)
                 }
             }
 
@@ -473,14 +473,19 @@ struct BodyTrackingBadge: View {
 
     var body: some View {
         let hasBody = orchestrator.poseDetector.bodyLandmarks != nil
-        let jointCount = orchestrator.poseDetector.bodyLandmarks?.allPoints.count ?? 0
+        let hasFace = orchestrator.faceDetector.faceLandmarks != nil
 
         HStack(spacing: 6) {
-            Image(systemName: hasBody ? "figure.arms.open" : "figure.stand")
-                .foregroundStyle(hasBody ? .green : .gray)
-            Text(hasBody ? "Body: \(jointCount) pts" : "Face only")
-                .font(.caption2)
-                .foregroundStyle(hasBody ? .green : .gray)
+            if hasBody {
+                Image(systemName: "figure.arms.open").foregroundStyle(.green)
+                Text("Skeleton: detected").font(.caption2).foregroundStyle(.green)
+            } else if hasFace {
+                Image(systemName: "figure.stand").foregroundStyle(.cyan)
+                Text("Skeleton: inferred").font(.caption2).foregroundStyle(.cyan)
+            } else {
+                Image(systemName: "figure.stand").foregroundStyle(.gray)
+                Text("No tracking").font(.caption2).foregroundStyle(.gray)
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)

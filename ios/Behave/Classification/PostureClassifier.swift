@@ -23,6 +23,9 @@ struct PostureClassifier {
         var shoulderWidth: Double = 0         // distance between shoulders (normalization)
         var faceBBoxHeight: Double = 0        // face bounding box height when calibrated
         var faceBBoxCenterY: Double = 0       // face center Y when calibrated
+        var faceBBoxCenterX: Double = 0       // lateral position at calibration
+        var calibratedRoll: Double = 0        // eye-line angle at calibration
+        var calibratedNoseOffset: Double = 0  // nose X offset at calibration
     }
 
     /// Thresholds
@@ -91,8 +94,8 @@ struct PostureClassifier {
         )
     }
 
-    /// Face-only classification: uses face bounding box size and position
-    /// when body pose isn't available. Less accurate but better than nothing.
+    /// Face-only classification: uses face bounding box + landmark geometry
+    /// when body pose isn't available. Infers posture from face signals.
     func classifyFromFace(_ face: FaceLandmarks, calibration: Calibration) -> Result {
         guard calibration.faceBBoxHeight > 0 else {
             return Result(isGood: true, shoulderTilt: 0, headDropRatio: 0, shoulderShrug: 0,
@@ -100,26 +103,46 @@ struct PostureClassifier {
         }
 
         let box = face.boundingBox
-
-        // When slouching: face gets larger (closer to camera) and drops lower
-        let sizeChange = (box.height - calibration.faceBBoxHeight) / calibration.faceBBoxHeight
-        let positionDrop = (Double(box.midY) - calibration.faceBBoxCenterY) / calibration.faceBBoxHeight
-
-        // Face getting >15% larger = leaning forward
-        // Face center dropping >20% of face height = slouching
-        let leanOk = sizeChange < 0.15
-        let dropOk = positionDrop < 0.20
-        let isGood = leanOk && dropOk
-
         var issues: [String] = []
+
+        // 1. Forward lean: face gets larger (closer to camera)
+        let sizeChange = (Double(box.height) - calibration.faceBBoxHeight) / calibration.faceBBoxHeight
+        let leanOk = sizeChange < 0.15
         if !leanOk { issues.append("leaning forward") }
+
+        // 2. Slouching: face drops lower
+        let positionDrop = (Double(box.midY) - calibration.faceBBoxCenterY) / calibration.faceBBoxHeight
+        let dropOk = positionDrop < 0.20
         if !dropOk { issues.append("slouching") }
+
+        // 3. Head roll: eye-line angle deviation from calibrated
+        let roll = face.eyeLineRoll ?? 0
+        let rollDelta = abs(roll - calibration.calibratedRoll)
+        let rollOk = rollDelta < 8.0
+        if !rollOk { issues.append("head tilted") }
+
+        // 4. Lateral lean: face center X drift from calibrated position
+        let lateralDrift: Double
+        if calibration.faceBBoxCenterX != 0 {
+            lateralDrift = (Double(box.midX) - calibration.faceBBoxCenterX) / Double(box.width)
+        } else {
+            lateralDrift = 0
+        }
+        let lateralOk = abs(lateralDrift) < 0.25
+        if !lateralOk {
+            issues.append(lateralDrift > 0 ? "leaning right" : "leaning left")
+        }
+
+        // 5. Head yaw: nose offset from centered (informational)
+        // Not penalized — turning head is natural during conversation
+
+        let isGood = leanOk && dropOk && rollOk && lateralOk
 
         return Result(
             isGood: isGood,
-            shoulderTilt: 0,
+            shoulderTilt: roll - calibration.calibratedRoll,
             headDropRatio: max(sizeChange, positionDrop),
-            shoulderShrug: 0,
+            shoulderShrug: abs(lateralDrift),
             details: isGood ? "Good posture" : issues.joined(separator: ", "),
             source: .faceOnly
         )
@@ -152,8 +175,11 @@ struct PostureClassifier {
 
         // Face calibration
         if let face = face {
-            cal.faceBBoxHeight = face.boundingBox.height
-            cal.faceBBoxCenterY = face.boundingBox.midY
+            cal.faceBBoxHeight = Double(face.boundingBox.height)
+            cal.faceBBoxCenterY = Double(face.boundingBox.midY)
+            cal.faceBBoxCenterX = Double(face.boundingBox.midX)
+            cal.calibratedRoll = face.eyeLineRoll ?? 0
+            cal.calibratedNoseOffset = face.noseOffsetRatio ?? 0
         }
 
         return cal

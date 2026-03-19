@@ -14,6 +14,10 @@ final class LocalSettings {
     var calibrationShoulderWidth: Double
     var calibrationFaceBBoxHeight: Double
     var calibrationFaceBBoxCenterY: Double
+    var calibrationFaceCenterX: Double
+    var calibrationRoll: Double
+    var calibrationNoseOffset: Double
+    var lateralLeanEnabled: Bool
     var isCalibrated: Bool
 
     // Thresholds
@@ -43,6 +47,10 @@ final class LocalSettings {
         self.calibrationShoulderWidth = 0
         self.calibrationFaceBBoxHeight = 0
         self.calibrationFaceBBoxCenterY = 0
+        self.calibrationFaceCenterX = 0
+        self.calibrationRoll = 0
+        self.calibrationNoseOffset = 0
+        self.lateralLeanEnabled = true
         self.isCalibrated = false
         self.postureWarningSeconds = 5
         self.postureAlertSeconds = 15
